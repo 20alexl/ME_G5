@@ -1,24 +1,28 @@
 import threading
 import sys
 
-from communication_client.client import Client as C
+from communication_client.client import CommunicationClient
     
-def clientInit(h, p):
-    
-    client = C(h, p)
-    client.connect()
-    
-    # Start a separate thread to continuously receive adn send data from the server
-    send_thread = threading.Thread(target=client.send_data)
-    send_thread.start()
+#global variables
+host = "192.168.10.174"
+port = 12345
 
-    receive_thread = threading.Thread(target=client.receive_data)
-    receive_thread.start()
+def comp_init():
+    
+    client = CommunicationClient(host, port)
+    client.connect_to_server()
     return client
 
-if __name__ == "__main__":
-    host = "192.168.10.174"  # Raspberry Pi IP address
-    port = 12345  # Chosen port number
+def start():
+    pass
+    
 
-    client = clientInit(host, port)
+if __name__ == "__main__":
+    client = comp_init(host, port)
+    while True:
+        command = input("Enter command (e.g., 'get image cam1', 'set speed 50', 'quit'): ")
+        if command == 'quit':
+            break
+        client.send_command(command)
+    client.close_connection()
     
