@@ -4,12 +4,24 @@ import struct
 import cv2
 
 class CommunicationClient:
+    """A TCP client for communicating with the server."""
+    
     def __init__(self, host, port):
+        """
+        Initialize the CommunicationClient.
+        
+        Args:
+            host (str): The IP address of the server.
+            port (int): The port number to connect to.
+        """
         self.host = host
         self.port = port
         self.client_socket = None
 
     def connect_to_server(self):
+        """
+        Connect to the server.
+        """
         try:
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((self.host, self.port))
@@ -18,6 +30,12 @@ class CommunicationClient:
             print(f"Error connecting to server: {e}")
     
     def send_command(self, command):
+        """
+        Send a command to the server and process the response.
+        
+        Args:
+            command (str): The command to send to the server.
+        """
         try:
             self.client_socket.sendall(command.encode())
             if command.startswith('get image'):
@@ -35,6 +53,13 @@ class CommunicationClient:
             print(f"Error sending command: {e}")
 
     def process_response(self, data, byte_length):
+        """
+        Process the response received from the server.
+        
+        Args:
+            data: The data received from the server.
+            byte_length (int): The length of the data received.
+        """
         try:
             if byte_length > 1:
                 self.display_image(data)
@@ -45,6 +70,12 @@ class CommunicationClient:
 
 
     def display_image(self, image_data):
+        """
+        Display the received image.
+        
+        Args:
+            image_data: The image data received from the server.
+        """
         try:
             print(f"Received image data length: {len(image_data)}")
             # Decode the image data and reshape it into the original image dimensions
@@ -62,8 +93,8 @@ class CommunicationClient:
         except Exception as e:
             print(f"Error displaying image: {e}")
 
-
     def close_connection(self):
+        """Close the connection with the server."""
         if self.client_socket:
             self.send_command('quit')
             self.client_socket.close()

@@ -5,7 +5,20 @@ import struct
 import time
 
 class CommunicationServer:
+    """A TCP server for handling communication with clients."""
+    
     def __init__(self, host, port, cam1, therm1, therm2, printer):
+        """
+        Initialize the CommunicationServer.
+        
+        Args:
+            host (str): The IP address of the server.
+            port (int): The port number to listen on.
+            cam1: An instance of BasicUSBcamera representing the USB camera.
+            therm1: An instance of ThermalCamera representing thermal camera 1.
+            therm2: An instance of ThermalCamera representing thermal camera 2.
+            printer: An instance representing the printer (currently not used).
+        """
         self.host = host
         self.port = port
         self.server_socket = None
@@ -15,6 +28,9 @@ class CommunicationServer:
         self.printer = printer
 
     def start_server(self):
+        """
+        Start the server and listen for incoming connections.
+        """
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -27,9 +43,14 @@ class CommunicationServer:
                 self.handle_client(client_socket)
         except Exception as e:
             print(f"Error starting server: {e}")
-                
-            
+
     def stop_server(self, client_socket):
+        """
+        Stop the server and close the connection with the client.
+        
+        Args:
+            client_socket: The socket object representing the client connection.
+        """
         if self.server_socket:
             time.sleep(0.5)
             client_socket.close()
@@ -37,9 +58,14 @@ class CommunicationServer:
             self.server_socket.close()
             self.server_socket = None
             print("Server stopped")
-            
 
     def handle_client(self, client_socket):
+        """
+        Handle communication with a client.
+        
+        Args:
+            client_socket: The socket object representing the client connection.
+        """
         try:
             while True:
                 data = client_socket.recv(1024).decode()
@@ -86,20 +112,33 @@ class CommunicationServer:
             print(f"Error handling client: {e}")
         finally:
             client_socket.close()
-            
+
     def capture_image(self, camera):
-        # Capture an image using the specified camera
+        """
+        Capture an image using the specified camera.
+        
+        Args:
+            camera: An instance of the camera (ThermalCamera or BasicUSBcamera).
+        
+        Returns:
+            np.ndarray: The captured image as a NumPy array.
+        """
         return camera.capture_frame()
 
     def send_image(self, client_socket, image_data):
-    # Send image data over the socket
+        """
+        Send image data over the socket.
+        
+        Args:
+            client_socket: The socket object representing the client connection.
+            image_data: The image data as a NumPy array.
+        """
         try:
             data = image_data.tobytes()
             client_socket.sendall(len(data).to_bytes(4, 'big'))
             client_socket.sendall(data)
         except Exception as e:
             print(f"Error sending image: {e}")
-
 
 if __name__ == "__main__":
     # Assuming you have camera objects cam1, therm1, therm2, and a printer object printer
