@@ -1,5 +1,5 @@
 import socket
-import pickle
+import numpy as np
 import struct
 import cv2
 
@@ -16,50 +16,56 @@ class CommunicationClient:
             print(f"Connected to server at {self.host}:{self.port}")
         except Exception as e:
             print(f"Error connecting to server: {e}")
-
+    
     def send_command(self, command):
         try:
             self.client_socket.sendall(command.encode())
-            data = self.client_socket.recv(1024)
-            self.process_response(data)
+            if command.startswith('get image'):
+                length_data = self.client_socket.recv(4)
+                length = int.from_bytes(length_data, 'big')
+                data = b''
+            
+                while len(data) < length:
+                    data += self.client_socket.recv(length - len(data))
+                self.process_response(data, length)
+            else:
+                data = self.client_socket.recv(1024)
+                self.process_response(data, 1)
         except Exception as e:
             print(f"Error sending command: {e}")
 
-    def process_response(self, data):
-        if data.startswith(b"\x89PNG"):
-            self.display_image(data)
-        else:
-            print(data.decode())
+    def process_response(self, data, byte_length):
+        try:
+            if byte_length > 1:
+                self.display_image(data)
+            else:
+                print(data.decode('utf-8'))
+        except Exception as e:
+            print(f"Error processing response: {e}")
+
 
     def display_image(self, image_data):
         try:
-            image_size = struct.unpack("L", image_data[:struct.calcsize("L")])[0]
-            image_data = image_data[struct.calcsize("L"):]
-            if len(image_data) != image_size:
-                print("Error: Image data corrupted")
+            print(f"Received image data length: {len(image_data)}")
+            # Decode the image data and reshape it into the original image dimensions
+            frame = np.frombuffer(image_data, dtype=np.uint8).reshape((360, 640, 3))
+        
+            # Check if the frame is None or empty
+            if frame is None or len(frame) == 0:
+                print("Error: Received empty or invalid image data")
                 return
-            image = pickle.loads(image_data)
-            cv2.imshow("Image", image)
+        
+            # Display the image
+            cv2.imshow("Image", frame)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
         except Exception as e:
             print(f"Error displaying image: {e}")
-            
-    def return_image(self, image_data):
-        try:
-            image_size = struct.unpack("L", image_data[:struct.calcsize("L")])[0]
-            image_data = image_data[struct.calcsize("L"):]
-            if len(image_data) != image_size:
-                print("Error: Image data corrupted")
-                return
-            else:
-                image = pickle.loads(image_data)
-                return image
-        except Exception as e:
-            print(f"Error returning image: {e}")
+
 
     def close_connection(self):
         if self.client_socket:
+            self.send_command('quit')
             self.client_socket.close()
             print("Connection closed")
 

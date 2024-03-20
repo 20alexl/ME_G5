@@ -18,11 +18,11 @@ def start():
     
 
 if __name__ == "__main__":
-    client = comp_init(host, port)
+    client = comp_init()
     while True:
         command = input("Enter command (e.g., 'get image cam1', 'set speed 50', 'quit'): ")
         if command == 'quit':
             break
         client.send_command(command)
     client.close_connection()
-    
+  

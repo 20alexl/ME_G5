@@ -1,8 +1,6 @@
 #main controller for Pi (daemon)
+import sys
 
-from distutils.cmd import Command
-from re import S
-from tkinter import SE
 from camera.camera_controller import ThermalCamera, BasicUSBcamera
 from communication_server.server import CommunicationServer
 
@@ -23,6 +21,5 @@ def main_init():
 
 if __name__ == "__main__":
     server = main_init()
-    if None:
-        server.start_server()
+    server.start_server()
     
