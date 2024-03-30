@@ -6,7 +6,7 @@ import sys
 from communication_client.client import CommunicationClient
     
 # Global variables
-host = "192.168.10.174"
+host = "192.168.10.191"
 port = 12345
 
 def comp_init():

@@ -79,7 +79,8 @@ class CommunicationClient:
         try:
             print(f"Received image data length: {len(image_data)}")
             # Decode the image data and reshape it into the original image dimensions
-            frame = np.frombuffer(image_data, dtype=np.uint8).reshape((360, 640, 3))
+            #frame = np.frombuffer(image_data, dtype=np.uint8).reshape((360, 640, 3))
+            frame = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
         
             # Check if the frame is None or empty
             if frame is None or len(frame) == 0:

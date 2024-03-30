@@ -125,6 +125,21 @@ class CommunicationServer:
         """
         return camera.capture_frame()
 
+    # def send_image(self, client_socket, image_data):
+    #     """
+    #     Send image data over the socket.
+        
+    #     Args:
+    #         client_socket: The socket object representing the client connection.
+    #         image_data: The image data as a NumPy array.
+    #     """
+    #     try:
+    #         data = image_data.tobytes()
+    #         client_socket.sendall(len(data).to_bytes(4, 'big'))
+    #         client_socket.sendall(data)
+    #     except Exception as e:
+    #         print(f"Error sending image: {e}")
+            
     def send_image(self, client_socket, image_data):
         """
         Send image data over the socket.
@@ -134,7 +149,7 @@ class CommunicationServer:
             image_data: The image data as a NumPy array.
         """
         try:
-            data = image_data.tobytes()
+            data = cv2.imencode('.jpg', image_data)[1].tobytes()
             client_socket.sendall(len(data).to_bytes(4, 'big'))
             client_socket.sendall(data)
         except Exception as e:
