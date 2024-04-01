@@ -2,6 +2,7 @@ import socket
 import numpy as np
 import struct
 import cv2
+import threading
 
 class CommunicationClient:
     """A TCP client for communicating with the server."""
@@ -28,7 +29,8 @@ class CommunicationClient:
             print(f"Connected to server at {self.host}:{self.port}")
         except Exception as e:
             print(f"Error connecting to server: {e}")
-    
+            
+        
     def send_command(self, command):
         """
         Send a command to the server and process the response.
@@ -100,6 +102,9 @@ class CommunicationClient:
             self.send_command('quit')
             self.client_socket.close()
             print("Connection closed")
+            
+    def errorHandle(self, e):
+        pass
 
 if __name__ == "__main__":
     client = CommunicationClient('localhost', 8888)

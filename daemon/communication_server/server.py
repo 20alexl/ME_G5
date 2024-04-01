@@ -1,13 +1,25 @@
+"""
+Server for the Raspberry Pi
+
+TODO: Add documentation
+"""
+
+# Imports
 import socket
 import cv2
 import numpy as np
 import struct
+import sys
+import threading
 import time
 
+from . import timing
+
+
 class CommunicationServer:
-    """A TCP server for handling communication with clients."""
-    
-    def __init__(self, host, port, cam1, therm1, therm2, printer):
+    """A TCP server for handling communication with clients."""   
+
+    def __init__(self, host, port):
         """
         Initialize the CommunicationServer.
         
@@ -22,27 +34,34 @@ class CommunicationServer:
         self.host = host
         self.port = port
         self.server_socket = None
-        self.cam1 = cam1
-        self.therm1 = therm1
-        self.therm2 = therm2
-        self.printer = printer
+        self.client_socket = None
+        self.connected = False
+        self.error = None
 
     def start_server(self):
         """
         Start the server and listen for incoming connections.
         """
-        try:
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_socket.bind((self.host, self.port))
-            self.server_socket.listen(1)
-            print(f"Server listening on {self.host}:{self.port}")
-            while self.server_socket:
-                client_socket, client_address = self.server_socket.accept()
-                print(f"Connection established with {client_address}")
-                self.handle_client(client_socket)
-        except Exception as e:
-            print(f"Error starting server: {e}")
+        try: 
+            if not self.connected:    
+                self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.server_socket.bind((self.host, self.port))
+                self.server_socket.listen(1)
+                print(f"Server listening on {self.host}:{self.port}")
+                self.client_socket, client_address = self.server_socket.accept()
+                self.connected = True
+            
+                #while self.running:
+                #    self.client_socket, client_address = self.server_socket.accept()
+                #    print(f"Connection established with {client_address}")
+                #    self.handle_client(self.client_socket)
+           
+        except Exception as error:
+            self.error = error
+            raise error
+            #print(f"Error starting server: {error}")
+
 
     def stop_server(self, client_socket):
         """
@@ -51,111 +70,19 @@ class CommunicationServer:
         Args:
             client_socket: The socket object representing the client connection.
         """
-        if self.server_socket:
+        if self.connected:
             time.sleep(0.5)
             client_socket.close()
             time.sleep(1.5)
             self.server_socket.close()
+            self.connected = False
             self.server_socket = None
             print("Server stopped")
 
-    def handle_client(self, client_socket):
-        """
-        Handle communication with a client.
-        
-        Args:
-            client_socket: The socket object representing the client connection.
-        """
-        try:
-            while True:
-                data = client_socket.recv(1024).decode()
-                if not data:
-                    break
-                command_parts = data.split()
-                if len(command_parts) < 1:
-                    client_socket.send(b"Invalid command format")
-                    continue
-                command_type = command_parts[0]
-                if command_type == 'quit':
-                    self.stop_server(client_socket)
-                    break
-                device = command_parts[1]
-                if command_type == 'get':
-                    if device == 'image':
-                        if command_parts[2] == 'cam1':
-                            image_data = self.cam1.capture_frame()
-                        elif command_parts[2] == 'therm1':
-                            image_data = self.therm1.capture_frame()
-                        elif command_parts[2] == 'therm2':
-                            image_data = self.therm2.capture_frame()
-                        else:
-                            client_socket.send(b"Invalid device")
-                            continue
-                        if image_data is not None:  # Check if image data is not None
-                            self.send_image(client_socket, image_data)
-                        else:
-                            client_socket.send(b"Error: Failed to capture image")
-                    else:
-                        client_socket.send(b"Invalid command")
-                elif command_type == 'set':
-                    if device == 'speed':
-                        # Implement logic to set speed
-                        client_socket.send(b"Speed set successfully")
-                    elif device == 'temp':
-                        # Implement logic to set temperature
-                        client_socket.send(b"Temperature set successfully")
-                    else:
-                        client_socket.send(b"Invalid device")
-                else:
-                    client_socket.send(b"Invalid command")
-        except Exception as e:
-            print(f"Error handling client: {e}")
-        finally:
-            client_socket.close()
-
-    def capture_image(self, camera):
-        """
-        Capture an image using the specified camera.
-        
-        Args:
-            camera: An instance of the camera (ThermalCamera or BasicUSBcamera).
-        
-        Returns:
-            np.ndarray: The captured image as a NumPy array.
-        """
-        return camera.capture_frame()
-
-    # def send_image(self, client_socket, image_data):
-    #     """
-    #     Send image data over the socket.
-        
-    #     Args:
-    #         client_socket: The socket object representing the client connection.
-    #         image_data: The image data as a NumPy array.
-    #     """
-    #     try:
-    #         data = image_data.tobytes()
-    #         client_socket.sendall(len(data).to_bytes(4, 'big'))
-    #         client_socket.sendall(data)
-    #     except Exception as e:
-    #         print(f"Error sending image: {e}")
-            
-    def send_image(self, client_socket, image_data):
-        """
-        Send image data over the socket.
-        
-        Args:
-            client_socket: The socket object representing the client connection.
-            image_data: The image data as a NumPy array.
-        """
-        try:
-            data = cv2.imencode('.jpg', image_data)[1].tobytes()
-            client_socket.sendall(len(data).to_bytes(4, 'big'))
-            client_socket.sendall(data)
-        except Exception as e:
-            print(f"Error sending image: {e}")
-
-if __name__ == "__main__":
-    # Assuming you have camera objects cam1, therm1, therm2, and a printer object printer
-    server = CommunicationServer('localhost', 8888, cam1, therm1, therm2, printer)
-    server.start_server()
+    #Sends encoded bytes
+    def send(self, data):
+        self.client_socket.sendall(data)
+    
+    #Returns recivied bytes
+    def rec(self):
+        return self.client_socket.recv(1024)

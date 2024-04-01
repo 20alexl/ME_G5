@@ -16,6 +16,9 @@ class ThermalCamera:
         self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
         self.camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', '1', '6', ' '))
         self.camera.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+        if not self.camera.isOpened():
+            print(f"Error: Failed to open camera on COM port {com_port}")
+            return
 
     def capture_frame(self):
         """
@@ -26,11 +29,7 @@ class ThermalCamera:
         """
         # Capture a frame from the thermal camera
         ret, frame = self.camera.read()
-        if ret:
-            return frame
-        else:
-            print("Error: Failed to capture frame from the thermal camera.")
-            return None
+        return ret, frame
 
     def release(self):
         """Release the thermal camera."""
@@ -65,11 +64,7 @@ class BasicUSBcamera:
         """
         # Capture a frame from the basic USB camera
         ret, frame = self.camera.read()
-        if ret:
-            return frame
-        else:
-            print("Error: Failed to capture frame from the basic USB camera.")
-            return None
+        return ret, frame
 
     def release(self):
         """Release the basic USB camera."""
