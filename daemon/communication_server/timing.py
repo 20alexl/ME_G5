@@ -2,10 +2,6 @@
 Timers for timing code on the Server (Daemon)
 """
 
-from . import server
-import cv2
-import numpy as np
-
 class Timer:
     """
     Timer for timing code
@@ -15,36 +11,6 @@ class Timer:
         self.running = False
         self.state = 'WAIT'
         self.data = None
-    
-    #Return server state
-    def getState(self):
-        return self.state
-    
-    #Send server state to client
-    def sendState(self):
-        server.client_socket.sendall(self.state.encode('utf-8'))
-    
-    #Send PING to client
-    def PING():
-        server.client_socket.sendall('PING'.encode('utf-8'))
-        
-    #Send PONG to client
-    def PONG():
-        server.client_socket.sendall('PONG'.encode('utf-8'))
-
-    #Convert text to bytes
-    def com2by(self, data):
-        return data.encode('utf-8')
-    
-    #Convert image to bytes
-    def im2by(self, data):
-        data = cv2.imencode('.jpg', data)[1].tobytes()
-        server.client_socket.sendall(len(data).to_bytes(4, 'big'))
-        return data
-    
-    #Convert bytes to text
-    def by2com(self, data):
-        return data.decode('utf-8')
 
     #
     def status(self):
@@ -68,6 +34,15 @@ class Timer:
             
         except Exception as error:
             raise error
+        
+    def setPING(self):
+        self.state = 'PING'
+
+    def setPONG(self):
+        self.state = 'PONG'
+        
+    def setWAIT(self):
+        self.state = 'WAIT'
             
     #OLD
     def status(self, data):

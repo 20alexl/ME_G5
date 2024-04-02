@@ -2,39 +2,27 @@
 
 from . import camera_controller
 
-OK = False
-Errors = []
+def test(cam):
+    """
+    Test if the camera is able to capture a frame.
 
-def setup(names, ports):
-    camera = []
-    camStatus = [False] * len(names)
-    
-    for index, string in enumerate(names):
-        if string == 'cam1':
-            try:
-                camera.append(camera_controller.BasicUSBcamera(ports[index]))
-                camStatus[index] = True
-            except Exception as e:
-                print(e)
-                Errors[index] = e
-                
-        elif string == 'therm1' or string == 'therm2':
-            try:
-                camera.append(camera_controller.ThermalCamera(ports[index]))
-                camStatus[index] = True
-            except Exception as e:
-                print(e)
-                Errors[index] = e
+    Args:
+        cam: An instance of a camera object (ThermalCamera or BasicUSBcamera).
+
+    Returns:
+        bool: True if the camera captures a frame successfully, False otherwise.
+    """
+    try:
+        if cam.camera is not None:
+            ret, frame = cam.capture_frame()
+            if ret:
+                return True
+            else:
+                raise RuntimeError(f"Error testing camera: No Frame")
+                return False
         else:
-            pass
-        
-    for index, cam in enumerate(camera):
-        print(cam)
-        ret, frame = cam.capture_frame()
-        if ret:
-            camStatus[index] = True
-        else:
-            camStatus[index] = False
-            Errors[index] = "Error: Failed to capture frame from {cam}."
- 
-    return camera, camStatus
+            raise RuntimeError(f"Error testing camera: No Camera Object")
+            return False
+    except Exception as error:
+        raise RuntimeError(f"Error testing camera: {error}")
+        return False
