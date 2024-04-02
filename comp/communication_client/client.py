@@ -1,117 +1,94 @@
+"""
+Server for the Raspberry Pi
+
+TODO: Add documentation
+"""
+
+# Imports
 import socket
-import numpy as np
-import struct
-import cv2
-import threading
 
 class CommunicationClient:
     """A TCP client for communicating with the server."""
     
-    def __init__(self, host, port):
+    def __init__(self, host, port, timer):
         """
-        Initialize the CommunicationClient.
+        Initialize the CommunicationServer.
         
         Args:
             host (str): The IP address of the server.
-            port (int): The port number to connect to.
+            port (int): The port number to listen on.
         """
         self.host = host
         self.port = port
-        self.client_socket = None
+        self.server_socket = None
+        self.connected = False
+        self.timer = timer
 
     def connect_to_server(self):
         """
         Connect to the server.
         """
         try:
-            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.client_socket.connect((self.host, self.port))
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.connect((self.host, self.port))
             print(f"Connected to server at {self.host}:{self.port}")
-        except Exception as e:
-            print(f"Error connecting to server: {e}")
+            self.connected = True
+        except Exception as error:
+            raise Exception(f"Error connecting to server: {error}")
+    
+    def close_connection(self):
+        """Close the connection with the server."""
+        if self.connected:
+            self.send_command('quit')
+            self.server_socket.close()
+            print("Connection closed")
             
-        
-    def send_command(self, command):
+    def send(self, data):
         """
-        Send a command to the server and process the response.
-        
-        Args:
-            command (str): The command to send to the server.
+        Send encoded bytes to the server.
         """
         try:
-            self.client_socket.sendall(command.encode())
-            if command.startswith('get image'):
-                length_data = self.client_socket.recv(4)
+            if self.connected:
+                self.server_socket.sendall(data)
+        except socket.error as error:
+            raise RecursionError(f"Error sending data: {error}")
+        
+    def receive(self):
+        """
+        Receive bytes from the server.
+        """
+        try:
+            if self.connected:
+                return self.server_socket.recv(1024)
+        except socket.error as error:
+            raise RecursionError(f"Error receiving data: {error}")
+        
+    def receiveImage(self):
+        """
+        Receive bytes from the server.
+        """
+        try:
+            if self.connected:
+                length_data = self.server_socket.recv(4)
                 length = int.from_bytes(length_data, 'big')
                 data = b''
             
                 while len(data) < length:
-                    data += self.client_socket.recv(length - len(data))
-                self.process_response(data, length)
-            else:
-                data = self.client_socket.recv(1024)
-                self.process_response(data, 1)
-        except Exception as e:
-            print(f"Error sending command: {e}")
-
-    def process_response(self, data, byte_length):
-        """
-        Process the response received from the server.
+                    data += self.server_socket.recv(length - len(data))
+                return data
+        except socket.error as error:
+            raise RecursionError(f"Error receiving data: {error}")
         
-        Args:
-            data: The data received from the server.
-            byte_length (int): The length of the data received.
+    def PING(self):
         """
-        try:
-            if byte_length > 1:
-                self.display_image(data)
-            else:
-                print(data.decode('utf-8'))
-        except Exception as e:
-            print(f"Error processing response: {e}")
-
-
-    def display_image(self, image_data):
+        Send PING message to the server.
         """
-        Display the received image.
-        
-        Args:
-            image_data: The image data received from the server.
+        self.send('PING'.encode())
+        self.timer.setPING()
+
+    def PONG(self):
         """
-        try:
-            print(f"Received image data length: {len(image_data)}")
-            # Decode the image data and reshape it into the original image dimensions
-            #frame = np.frombuffer(image_data, dtype=np.uint8).reshape((360, 640, 3))
-            frame = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
-        
-            # Check if the frame is None or empty
-            if frame is None or len(frame) == 0:
-                print("Error: Received empty or invalid image data")
-                return
-        
-            # Display the image
-            cv2.imshow("Image", frame)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-        except Exception as e:
-            print(f"Error displaying image: {e}")
-
-    def close_connection(self):
-        """Close the connection with the server."""
-        if self.client_socket:
-            self.send_command('quit')
-            self.client_socket.close()
-            print("Connection closed")
-            
-    def errorHandle(self, e):
-        pass
-
-if __name__ == "__main__":
-    client = CommunicationClient('localhost', 8888)
-    client.connect_to_server()
-    while True:
-        command = input("Enter command (e.g., 'get image cam1', 'set speed 50', 'quit'): ")
-        if command == 'quit':
-            break
-        client.send_command(command)
-    client.close_connection()
+        Send PONG message to the server.
+        """
+        self.send('PONG'.encode())
+        self.timer.setPONG()

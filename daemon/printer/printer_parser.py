@@ -398,3 +398,17 @@ class PrinterInformation:
         response = self.communication.receive_response()
         return self.parse_response(response)
     
+    def park(self):
+        """
+        Get the current position of the specified axis.
+
+        Args:
+            axis (str): The axis to retrieve the position of (e.g., 'X', 'Y', 'Z').
+
+        Returns:
+            str: The current position of the specified axis.
+        """
+        self.communication.send_command("M125 L20")
+        response = self.communication.receive_response()
+        return self.parse_response(response)
+    

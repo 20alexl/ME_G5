@@ -1,5 +1,6 @@
 # Empty file
 
+import time
 from . import server
 from . import timing
 import cv2
@@ -53,14 +54,18 @@ def by2com(self, data):
         return None
 
 #Test function
-def test(server):
+def test(server, timer):
         if server.connected == True:
             try:
-                
-                status, _ = timing.status()
-                if not status:
-                    _, data = timing.status()
-                    print("Server Test Complete: PING / ", data)
+                counter = 0
+                server.PING()
+                timer.checkStatus(server)
+                while(timer.running == True and counter < 2000):
+                    timer.checkStatus(server)
+                    counter += 1
+                if counter == 2000:
+                     raise RuntimeError (f"Error Testing Server: TIMEOUT 2000+")
+
             except Exception as error:
                 raise RuntimeError (f"Error Testing Server: {error}")
             

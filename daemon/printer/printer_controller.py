@@ -14,8 +14,16 @@ class PrinterCommunication:
         """
         self.port = port
         self.baudrate = baudrate
-        self.serial_connection = serial.Serial(port=self.port, baudrate=self.baudrate, timeout=1)
+        self.connected = False
     
+
+    def connect(self):
+        """
+        Connect to the printer.
+        """
+        self.serial_connection = serial.Serial(port=self.port, baudrate=self.baudrate, timeout=1)
+        
+
     def send_command(self, command):
         """
         Send a command to the printer.
@@ -23,8 +31,13 @@ class PrinterCommunication:
         Args:
             command (str): The command to send to the printer.
         """
-        self.serial_connection.write((command + "\n").encode())
-    
+        if isinstance(commands, str):
+            commands = [commands]  # Convert single command to a list
+
+        for command in commands:
+            self.serial_connection.write((command + "\n").encode())
+            self.communication.receive_response()
+        
     def receive_response(self):
         """
         Receive a response from the printer.

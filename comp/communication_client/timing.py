@@ -1,10 +1,6 @@
 """
-Timers for timing code on Computer (Comp)
+Timers for timing code on the Server (Daemon)
 """
-
-from . import client
-import cv2
-import numpy as np
 
 class Timer:
     """
@@ -13,57 +9,45 @@ class Timer:
 
     def __init__(self):
         self.running = False
-        
-    def sendPong():
-        client.client_socket.sendall('PONG'.encode('utf-8'))
-    
-    def com2by(self, data):
-        return data.encode('utf-8')
-    
-    def im2by(self, data):
-        data = cv2.imencode('.jpg', data)[1].tobytes()
-        client.client_socket.sendall(len(data).to_bytes(4, 'big'))
-        return data
+        self.state = 'WAIT'
+        self.data = None
 
-    def by2im(self, data):
-        return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-    
-    def by2com(self, data):
-        return data.decode('utf-8')
-
-    def status(self, data):
+    #
+    def checkStatus(self, server):
         """
+        Status of the timer, waits for 'PING' 
+        
+        Args: data: 'PING' or 'PONG' for init, images or commands/data respectively
         """
         try:
-            self.sendPong() #SEND PONG
-            if (type(data) == 'numpy.ndarray'):
-                server.client_socket.sendall(self.im2by(data))
-                self.running = True
-                while(self.running): 
-                    ret = server.client_socket.recv(1024)
-                    if ret == 'PING':
-                        ret = self.by2com(server.client_socket.recv(1024))
-                        self.running = False
+            if self.state == 'WAIT':
+                data = (server.receive()).decode()
+                if data == 'PONG':
+                    self.state = 'PING'
+                elif data == 'PING':
+                    self.state = 'PONG'
                     
-                return self.running, ret
-            
-            elif (type(data) == 'str'):
-                server.client_socket.sendall(self.com2by(data))
                 self.running = True
-                while(self.running):
-                    ret = self.by2com(server.client_socket.recv(1024))
-                    if ret == 'PONG':
-                        ret = self.by2com(server.client_socket.recv(1024))
-                        self.running = False
-                    
-                return self.running, ret
+                
+            if self.state == 'PING':
+                self.running = True
+                if (server.receive()).decode() == 'PONG':
+                    self.state = 'PONG'
             
-            else:
-                self.sent = False
-                self.ack = False
+            if self.state == 'PONG':
                 self.running = False
-                return self.running, None
+                #add other functions of states here
+                self.state = 'WAIT'
             
         except Exception as error:
             raise error
-            self.running = False
+        
+    def setPING(self):
+        self.state = 'PING'
+
+    def setPONG(self):
+        self.state = 'PONG'
+        
+    def setWAIT(self):
+        self.state = 'WAIT'
+            
