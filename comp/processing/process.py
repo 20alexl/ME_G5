@@ -5,8 +5,8 @@ import numpy as np
 
 
 class ImageProcess:
-    def __init__(self, frame):
-        self.image = frame
+    def __init__(self):
+        self.image = None
         self.printerFlag = None
         self.runnning = True
         
@@ -22,9 +22,10 @@ class ImageProcess:
         self.CalTemp = None
         self.CalBed = None
 
-
-    def display_image(self):
+    
+    def display_image(self, image):
         try:
+            self.image = image
             if self.image is not None:
                 cv2.imshow("Image", self.image)
                 cv2.waitKey(0)

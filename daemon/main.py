@@ -267,7 +267,7 @@ def start():
                     myServer.send('PONG') #SEND PONG (READY TO SEND DATA)
                     myServer.send(server.com2by(myData)) #SEND DATA
         except Exception as error:
-            myServer.PONG()
+            #myServer.PONG()
             myServer.send(server.com2by(error))
             myServer.PING()
             raise RuntimeError(f"Error Debugging: {error}")

@@ -152,8 +152,8 @@ def start():
                         return None
                     elif flag == 1:
                         #get calibration data
-                        command = myProcess.calibrate()
-                        return command
+                        myProcess.calibrate()
+                        return None
                     elif flag == 2:
                         #get layer data
                         command = myProcess.layer_change()
@@ -185,7 +185,8 @@ def start():
     def process(data):
         try:
             if data is not None:
-                myProcess.process(data)
+                myCommand = myProcess.display_image(data)
+                return myCommand
             else:
                 pass
         except Exception as error:
