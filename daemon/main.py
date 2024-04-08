@@ -6,7 +6,7 @@ from camera.camera_controller import ThermalCamera, BasicUSBcamera
 from communication_server.server import CommunicationServer
 
 # Global variables
-host = "192.168.10.174"  # Raspberry Pi IP address
+host = "192.168.10.191"  # Raspberry Pi IP address
 port = 12345  # Chosen port number
 cam1 = 0
 therm1 = 1
@@ -19,7 +19,7 @@ def main_init():
     Returns:
         CommunicationServer: An instance of the CommunicationServer class.
     """
-    cam1 = BasicUSBcamera(cam1)
+    cam1 = BasicUSBcamera(0)
     # therm1 = ThermalCamera(therm1)
     # therm2 = ThermalCamera(therm2)
     printer = None
