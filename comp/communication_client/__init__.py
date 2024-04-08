@@ -1,10 +1,10 @@
-import re
+#comp/communication_client/__init__.py
 from . import client
-from . import timing
 import cv2
 import numpy as np
+import socket
 
-def com2by(self, data):
+def com2by(data):
     """
     Convert text data to bytes.
 
@@ -15,12 +15,15 @@ def com2by(self, data):
         bytes: The converted byte data.
     """
     try:
-        return data.encode('utf-8')
+        if data is None:
+            return None
+        else:
+            return data.encode()
     except Exception as error:
         raise RuntimeError(f"Error converting text to bytes: {error}")
         return None
 
-def im2by(self, data):
+def im2by(data):
     """
     Convert image data to bytes.
 
@@ -31,12 +34,15 @@ def im2by(self, data):
         bytes: The converted byte data.
     """
     try:
-        return cv2.imencode('.jpg', data)[1].tobytes()
+        if data is None:
+            return None
+        else:
+            return cv2.imencode('.jpg', data)[1].tobytes()
     except Exception as error:
         raise RuntimeError(f"Error converting image to bytes: {error}")
         return None
 
-def by2com(self, data):
+def by2com(data):
     """
     Convert bytes data to text.
 
@@ -47,12 +53,15 @@ def by2com(self, data):
         str: The converted text data.
     """
     try:
-        return data.decode('utf-8')
+        if data is None:
+            return None
+        else:
+            return data.decode()
     except Exception as error:
         raise RuntimeError(f"Error converting bytes to text: {error}")
         return None
     
-def by2im(self, data):
+def by2im(data):
     """
     Convert bytes data to image.
 
@@ -63,23 +72,28 @@ def by2im(self, data):
         str: The converted image data.
     """
     try:
-        return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        if data is None:
+            return None
+        else:
+            return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     except Exception as error:
         raise RuntimeError(f"Error converting bytes to text: {error}")
         return None
 
-#Test function
+#Test function (NOT USED)
+"""    
 def test(client, timer):
         if client.connected == True:
             try:
                 counter = 0
                 timer.checkStatus(client)
-                while(timer.running == True and counter < 2000):
+                while(timer.running == True and counter < 20):
                     timer.checkStatus(client)
                     counter += 1
-                if counter == 2000:
-                    raise RuntimeError (f"Error Testing Server: TIMEOUT 2000+")
+                if counter == 20:
+                    raise RuntimeError (f"Error Testing Server: TIMEOUT 20+")
                 else:
                     client.PONG()
             except Exception as error:
                 raise RuntimeError (f"Error Testing Server: {error}")
+"""    

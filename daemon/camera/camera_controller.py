@@ -1,3 +1,4 @@
+#daemon/camera/camera_controller.py
 import cv2
 
 class ThermalCamera:

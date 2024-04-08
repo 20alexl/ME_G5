@@ -1,5 +1,6 @@
+#comp/communication_client/timing.py
 """
-Timers for timing code on the Server (Daemon)
+Timers for timing code on the Client (Comp)
 """
 
 class Timer:
@@ -32,6 +33,7 @@ class Timer:
             if self.state == 'PING':
                 self.running = True
                 if (server.receive()).decode() == 'PONG':
+                    self.running = False
                     self.state = 'PONG'
             
             if self.state == 'PONG':

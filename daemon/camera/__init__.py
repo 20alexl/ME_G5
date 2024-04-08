@@ -1,4 +1,4 @@
-# Empty file
+#daemon/camera/__init__.py
 
 from . import camera_controller
 
@@ -13,7 +13,7 @@ def test(cam):
         bool: True if the camera captures a frame successfully, False otherwise.
     """
     try:
-        if cam.camera is not None:
+        if cam is not None:
             ret, frame = cam.capture_frame()
             if ret:
                 return True

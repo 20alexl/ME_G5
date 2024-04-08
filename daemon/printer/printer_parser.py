@@ -1,3 +1,5 @@
+#daemon/printer/printer_parser.py
+
 # Code for parsing G-code commands
 class PrinterInformation:
     """Class for retrieving information from the 3D printer."""
