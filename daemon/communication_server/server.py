@@ -26,7 +26,7 @@ class CommunicationServer:
         self.client_socket = None
         self.connected = False
         self.running = False
-        self.status = 'WAIT'
+        self.state = 'WAIT'
         self.timer = False
 
     def start_server(self):
@@ -44,7 +44,6 @@ class CommunicationServer:
                 self.client_socket, client_address = self.server_socket.accept()
                 self.client_socket.settimeout(0.5)
                 self.connected = True
-                self.status = 'WAIT'
         except socket.error as error:
             raise RuntimeError(f"Error Starting server: {error}")
 

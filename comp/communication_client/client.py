@@ -24,7 +24,7 @@ class CommunicationClient:
         self.server_socket = None
         self.connected = False
         self.running = False
-        self.status = 'WAIT'
+        self.state = 'WAIT'
         self.timer = False
 
     def connect_to_server(self):
@@ -38,7 +38,6 @@ class CommunicationClient:
             print(f"Connected to server at {self.host}:{self.port}")
             self.server_socket.settimeout(0.5)
             self.connected = True
-            self.status = 'WAIT'
         except Exception as error:
             raise RuntimeError(f"Error connecting to server: {error}")
     
@@ -105,7 +104,7 @@ class CommunicationClient:
                 if data == 'PONG':
                     self.state = 'PONG'
                 elif data == 'PING':
-                    self.state = 'PING'
+                    self.state = 'PONG'
                     
                 self.timer = True
                 

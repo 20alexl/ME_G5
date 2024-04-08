@@ -29,20 +29,28 @@ class main:
         self.myServer = server.server.CommunicationServer(host, port)#INITIALIZE SERVER(HOST ADRESS, PROT #)
         if printer_port is not None:
             self.myPrinter = printer.printer_controller.PrinterCommunication(printer_port)#INITIALIZE PRINTER(USB PORT)
+        else:
+            self.myPrinter = None
         if cam1 is not None:
             self.cam1 = camera.camera_controller.BasicUSBcamera(cam1)#INITIALIZE CAMERA(USB PORT)
+        else:
+            self.cam1 = None
         if therm1 is not None:
             self.therm1 = camera.camera_controller.ThermalCamera(therm1)#INITIALIZE CAMERA(USB PORT)
+        else:
+            self.therm1 = None
         if therm2 is not None:
             self.therm2 = camera.camera_controller.ThermalCamera(therm2)#INITIALIZE CAMERA(USB PORT)
+        else:
+            self.therm2 = None
             
         self.myCommand = None
         self.myData = None
         
         self.initPassed = False
+        self.initStatus = "404"
         self.printerFlag = False
         self.pinged = False
-        self.initStatus = "404"
      
         
     #START
@@ -287,7 +295,7 @@ if __name__ == "__main__":
     therm2Port = 2
     printerPort = 3
     
-    myMain = main(host, port, printerPort, cam1Port, therm1Port, therm2Port)
+    myMain = main(host, port, printerPort, cam1Port, None, None)
     if DEBUGGING:
         myMain.debug() #DEBUG
     else:
