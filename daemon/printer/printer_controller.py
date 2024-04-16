@@ -2,11 +2,12 @@
 
 # Code for controlling the 3D printer
 import serial
+import printer_commands as commands
 
-class PrinterCommunication:
+class PrinterCommunication():
     """Class for handling communication with the 3D printer."""
     
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200):
+    def __init__(self, port='/dev/ttyUSB0', baudrate=250000):
         """
         Initialize the PrinterCommunication object.
 
@@ -17,15 +18,17 @@ class PrinterCommunication:
         self.port = port
         self.baudrate = baudrate
         self.connected = False
-    
+        self.paused = False
+        self.command = commands.Commands(self)
 
     def connect(self):
         """
         Connect to the printer.
         """
+        print("Connecting to printer...")
         self.serial_connection = serial.Serial(port=self.port, baudrate=self.baudrate, timeout=1)
+        self.connected = True
         
-
     def send_command(self, command):
         """
         Send a command to the printer.
@@ -52,5 +55,11 @@ class PrinterCommunication:
     def close_connection(self):
         """Close the serial connection to the printer."""
         self.serial_connection.close()
+        
+    def pause(self):
+        """Pause the printer."""
+        self.command.park()
+        self.paused = True
+        
 
 
