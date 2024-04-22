@@ -12,7 +12,7 @@ import sys
 import camera as camera
 import communication_server as server
 import printer as printer
-         
+
 """
 MAIN CONTROLLER CLASS
 """
@@ -24,7 +24,7 @@ class main:
         """
         Initialize the main controller.
         """
-        
+
         #Global Instances
         self.myServer = server.server.CommunicationServer(host, port)#INITIALIZE SERVER(HOST ADRESS, PROT #)
         if printer_port is not None:
@@ -46,13 +46,13 @@ class main:
             
         self.myCommand = None
         self.myData = None
-        
+
         self.initPassed = False
         self.initStatus = "404"
         self.printerFlag = False
         self.pinged = False
-     
-        
+
+
     #START
     def start(self):
         try:
@@ -60,10 +60,10 @@ class main:
             if self.myServer.running:
                 while not self.myServer.connected:
                     pass
-                    
+
         except Exception as error:
             raise RuntimeError(f"Error Start Main: {error}")
-    
+
 
     #STOP
     def stop(self):
@@ -80,10 +80,10 @@ class main:
                     self.therm1.release()
                 if self.therm2 is not None:    
                     self.therm2.release()
-                    
+
         except Exception as error:
             raise RuntimeError(f"Error Stop Main: {error}")
-    
+
 
     #RESET
     def reset(self):
@@ -91,9 +91,10 @@ class main:
             if self.myServer.connected:
                     self.stop()
                     exit
+
         except Exception as error:
             raise RuntimeError(f"Error Reset Main: {error}")
-    
+
 
     #INITIALIZATION TEST
     def init_test(self):
@@ -106,23 +107,25 @@ class main:
                 camera.test(self.therm2)
             if self.myPrinter.connected:    
                 printer.test(self.myPrinter)
-            
+
             self.initPassed = True
             self.initStatus = "200"
+
         except Exception as error:
             raise error
-    
+
 
     #WAIT FOR TIMER
     def wait(self):
         try:
-           self.myServer.checkStatus()
-           while(self.myServer.timer):
+            self.myServer.checkStatus()
+            while(self.myServer.timer):
                 self.myServer.checkStatus()
                 print("WAITING")
+
         except Exception as error:
             raise error
-    
+
 
     #PROCESS COMMANDS    
     def process(self, command):
@@ -132,37 +135,39 @@ class main:
             if self.myCommand is not None:
                 if len(command_parts) < 1:
                     raise RuntimeError(f"Invalid command format")
-                
+
                 command_type = command_parts[0]
                 if command_type == 'quit':
                     self.reset() 
                     exit
-                    
+
                 device = command_parts[1]
                 if command_type == 'get':
-                    
+
                     if device == 'printer':
                         if command_parts[2] == 'pos':
                             #Implement logic to get position
-                            self.myData = self.myPrinter.get_position()
+                            if len(command_parts) == 3:
+                                self.myData = self.myPrinter.setCommands.get_axis_position(command_parts[3])
+                            else:
+                                self.myData = self.myPrinter.setCommands.get_axis_position('X') + self.myPrinter.setCommands.get_axis_position('Y') + self.myPrinter.setCommands.get_axis_position('Z')
                         elif command_parts[2] == 'speed':
                             #Implement logic to get speed
-                            self.myData = self.myPrinter.get_speed()
+                            self.myData = self.myPrinter.setCommands.get_print_speed()
                         elif command_parts[2] == 'temp':
                             #Implement logic to get temperature
-                            self.myData = self.myPrinter.get_temp()
+                            self.myData = self.myPrinter.setCommands.get_bed_temperature() + self.myPrinter.setCommands.get_extruder_temperature()
                         elif command_parts[2] == 'state':
                             #Implement logic to get state
-                            self.myData = self.myPrinter.get_printer_state()
+                            self.myData = self.myPrinter.setCommands.get_printer_state
                         elif command_parts[2] == 'flow':
                             #Implement logic to get flow rate
-                            self.myData = self.myPrinter.get_flow_rate()
+                            self.myData = self.myPrinter.setCommands.get_flow_rate()
                         else:
                             raise RuntimeError(f"Invalid Printer Command")
-                            
-                    
+
+
                     elif device == 'image':
-                    #elif device == 'image':
                         if command_parts[2] == 'cam1':
                             ret, self.myData = self.cam1.capture_frame()
                         elif command_parts[2] == 'therm1':
@@ -171,10 +176,10 @@ class main:
                             ret, self.myData = self.therm2.capture_frame()
                         else:
                             raise RuntimeError(f"Invalid Image device")
- 
+
                     else:
                         raise RuntimeError(f"Invalid command")
-                    
+
                     if self.myData is not None:  # Check if image data is not None
                         if ret:
                             self.myServer.PONG()
@@ -186,46 +191,58 @@ class main:
                             self.wait()
                         else:
                             raise RuntimeError(f"Invalid Process data type")
+
                     else:
                         raise RuntimeError(f"Error: Failed to capture data")
 
                 elif command_type == 'set':
                     if device == 'speed':
-                        # Implement logic to set speed
-                        pass
+                        self.myData = self.myPrinter.setCommands.set_print_speed(command_parts[3])
                     elif device == 'temp':
                         # Implement logic to set temperature
-                        pass
+                        if command_parts[2] == 'bed':
+                            self.myData = self.myPrinter.setCommands.set_bed_temperature(command_parts[3])
+                        if command_parts[2] == 'extruder':
+                            self.myData = self.myPrinter.setCommands.set_extruder_temperature(command_parts[3])
                     elif device == 'pos':
                         # Implement logic to set position
-                        pass
+                        self.myData = self.myPrinter.setCommands.move_axis(command_parts[3], command_parts[4])
                     elif device == 'home':
                         # Implement logic to home
-                        pass
+                        self.myData = self.myPrinter.setCommands.home()
                     elif device == 'park':
                         # Implement logic to park
-                        pass
+                        self.myData = self.myPrinter.setCommands.park()
                     elif device == 'flow':
                         # Implement logic to set flow
-                        pass
+                        self.myData = self.myPrinter.setCommands.set_flow_rate(command_parts[3])
                     else:
                         raise RuntimeError(f"Invalid device")
+
                 else:
                     raise RuntimeError(f"Invalid command")
+                
+                if self.myData is not None:  # Check if image data is not None
+                    self.myServer.PONG()
+                    self.myServer.send(server.com2by(self.myData))
+
+                else:
+                    raise RuntimeError(f"Error: Failed to capture data")
+
             else:
                 return None
         except Exception as error:
             raise error
-    
+
 
     """
     DEGUB LOOP
     """
-    
+
     def debug(self):
         try:
             self.start()
-            
+
             if self.myServer.connected:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
@@ -234,7 +251,7 @@ class main:
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
                 self.wait()#WAIT FOR PONG
                 print("Passed!" + self.initStatus)
-                
+
             while self.myServer.connected:
                 if server.by2com(self.myServer.receive()) == 'PING':
                     print("PINGGED")
@@ -243,13 +260,14 @@ class main:
                     self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
                     self.myServer.send(server.com2by(self.myData)) #SEND DATA
                     print("PONGGED")
+
         except Exception as error:
             #myServer.PONG()
             #myServer.send(server.com2by(error))
             #myServer.PING()
             print(f"Error Debugging: {error}")
             sys.exit(1)
-            
+
 
     """
     MAIN LOOP
@@ -258,25 +276,38 @@ class main:
     def main(self):
         try:
             self.start()
-            
+
             if self.myServer.connected:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
+
             if self.initPassed:#IF ALL TESTS PASS
                 self.myServer.PING()#SEND PING(INIT PING)
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
                 self.wait()#WAIT FOR PONG
                 print("Passed!" + self.initStatus)
-                
+
             while(self.myServer.connected):
-                self.printerFlag = self.myPrinter.get_printer_state() #CHECK FOR SET FLAGS
+                self.printerFlag = self.myPrinter.get_status() #CHECK FOR SET FLAGS
+                self.myServer.checkStatus() #START WIAIT FOR SOMETHING FROM HOST (USUALLY "PING")
+
                 if self.printerFlag is not None:
                     self.myServer.PING() #SEND PING TO INDICATE FLAG | TIMER STATE IS PING
-                    self.myServer.send(server.com2by(self.myPrinter.flag)) #SEND FLAG
+                    self.myServer.send(server.com2by(self.printerFlag)) #SEND FLAG
                     self.wait() #WAIT FOR PONG(READY FOR RESPONSE)
                     self.process(server.by2com(self.myServer.receive())) #PROCESS INITIAL COMMAND (USUALY A GET COMMAND)
+                    #PING AND PONG INSIDE OF PROCESS
                     self.process(server.by2com(self.myServer.receive())) #PROCESS SECOND COMMAND (USUALY A SET COMMAND)
-                    self.myPrinter.flag = False
+                    #NO PING PONG ON SET COMMANDS
+                    self.printerFlag = None
+
+                elif self.myServer.status is not 'WAIT':
+                    self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
+                
+
+                else:
+                    pass
+
         except Exception as error:
             print(error)
             sys.exit(1)
@@ -287,6 +318,7 @@ if __name__ == "__main__":
     """
     MAIN INITIALIZATION
     """
+
     DEBUGGING = True
     host = "192.168.10.191"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
@@ -294,7 +326,7 @@ if __name__ == "__main__":
     therm1Port = 1
     therm2Port = 2
     printerPort = 3
-    
+
     myMain = main(host, port, printerPort, cam1Port, None, None)
     if DEBUGGING:
         myMain.debug() #DEBUG

@@ -24,10 +24,10 @@ class CommunicationServer:
         self.port = port
         self.server_socket = None
         self.client_socket = None
-        self.connected = False
-        self.running = False
-        self.state = 'WAIT'
-        self.timer = False
+        self.connected = bool(False)
+        self.running = bool(False)
+        self.status = str('WAIT')
+        self.timer = bool(False)
 
     def start_server(self):
         """
@@ -44,6 +44,7 @@ class CommunicationServer:
                 self.client_socket, client_address = self.server_socket.accept()
                 self.client_socket.settimeout(0.5)
                 self.connected = True
+
         except socket.error as error:
             raise RuntimeError(f"Error Starting server: {error}")
 
@@ -60,8 +61,10 @@ class CommunicationServer:
                 print("Server stopped")
                 self.running = False
                 self.status = 'None'
+
         except socket.error as error:
-             raise RuntimeError(f"Error stopping server: {error}")
+            raise RuntimeError(f"Error stopping server: {error}")
+
 
     def send(self, data):
         """
@@ -69,11 +72,13 @@ class CommunicationServer:
         """
         try:
             if self.connected:
+                self.setPING()
                 if data:
                     self.client_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.client_socket.sendall(data)
                 else:
                     pass
+
         except socket.error as error:
             raise RuntimeError(f"Error sending bytes {len(data)}: {error}")
 
@@ -86,13 +91,14 @@ class CommunicationServer:
                 length_data = self.server_socket.recv(4)
                 length = int.from_bytes(length_data, 'big')
                 data = b''
-            
                 while len(data) < length:
                     data += self.server_socket.recv(length - len(data))
                 return data
+
         except socket.timeout:
             #print("Receive operation timed out.")
             return None
+
         except socket.error as error:
             raise RuntimeError(f"Error receiving data: {error}")
 
@@ -109,7 +115,7 @@ class CommunicationServer:
         """
         self.send('PONG'.encode())
         self.setPONG()
-        
+
     def checkStatus(self):
         """
         Status of the timer, waits for 'PING' 
@@ -122,7 +128,7 @@ class CommunicationServer:
                 if data == 'PONG':
                     self.state = 'PONG'
                 elif data == 'PING':
-                    self.state = 'PING'
+                    self.state = 'PONG'
                     
                 self.timer = True
                 
@@ -135,16 +141,16 @@ class CommunicationServer:
             if self.state == 'PONG':
                 self.timer = False
                 self.state = 'WAIT'
-            
+
         except Exception as error:
             raise error
-        
+
     def setPING(self):
         self.state = 'PING'
 
     def setPONG(self):
         self.state = 'PONG'
-        
+
     def setWAIT(self):
         self.state = 'WAIT'
 

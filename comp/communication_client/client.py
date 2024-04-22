@@ -23,9 +23,9 @@ class CommunicationClient:
         self.port = port
         self.server_socket = None
         self.connected = False
-        self.running = False
-        self.state = 'WAIT'
-        self.timer = False
+        self.running = bool(False)
+        self.status = str('WAIT')
+        self.timer = bool(False)
 
     def connect_to_server(self):
         """
@@ -44,7 +44,7 @@ class CommunicationClient:
     def close_connection(self):
         """Close the connection with the server."""
         if self.connected:
-            self.send_command('quit')
+            self.send('quit')
             self.server_socket.close()
             print("Connection closed")
             
@@ -54,11 +54,14 @@ class CommunicationClient:
         """
         try:
             if self.connected:
-                self.client_socket.sendall(len(data).to_bytes(4, 'big'))
-                self.client_socket.sendall(data)
+                if data is not None:
+                    self.server_socket.sendall(len(data).to_bytes(4, 'big'))
+                    self.server_socket.sendall(data)
+                else:
+                    pass
         except socket.error as error:
             raise RuntimeError(f"Error sending data: {error}")
-               
+
     def receive(self):
         """
         Receive bytes from the server.
@@ -72,25 +75,27 @@ class CommunicationClient:
                 while len(data) < length:
                     data += self.server_socket.recv(length - len(data))
                 return data
+
         except socket.timeout:
             #print("Receive operation timed out.")
             return None
+
         except socket.error as error:
             raise RuntimeError(f"Error receiving data: {error}")
-        
+
     def PING(self):
         """
         Send PING message to the server.
         """
         self.send('PING'.encode())
-        self.timer.setPING()
+        self.setPING()
 
     def PONG(self):
         """
         Send PONG message to the server.
         """
         self.send('PONG'.encode())
-        self.timer.setPONG()
+        self.setPONG()
 
     def checkStatus(self):
         """
@@ -99,33 +104,33 @@ class CommunicationClient:
         Args: data: 'PING' or 'PONG' for init, images or commands/data respectively
         """
         try:
-            if self.state == 'WAIT':
+            if self.status == 'WAIT':
                 data = (self.receive()).decode()
                 if data == 'PONG':
-                    self.state = 'PONG'
+                    self.status = 'PONG'
                 elif data == 'PING':
-                    self.state = 'PONG'
+                    self.status = 'PONG'
                     
                 self.timer = True
                 
-            if self.state == 'PING':
+            if self.status == 'PING':
                 self.timer = True
                 if (self.receive()).decode() == 'PONG':
                     self.timer = False
-                    self.state = 'PONG'
+                    self.status = 'PONG'
             
-            if self.state == 'PONG':
+            if self.status == 'PONG':
                 self.timer = False
-                self.state = 'WAIT'
+                self.status = 'WAIT'
             
         except Exception as error:
             raise error
         
     def setPING(self):
-        self.state = 'PING'
+        self.status = 'PING'
 
     def setPONG(self):
-        self.state = 'PONG'
+        self.status = 'PONG'
         
     def setWAIT(self):
-        self.state = 'WAIT'
+        self.status = 'WAIT'

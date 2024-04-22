@@ -2,7 +2,7 @@
 from . import client
 import cv2
 import numpy as np
-import socket
+
 
 def com2by(data):
     """

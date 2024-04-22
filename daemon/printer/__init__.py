@@ -5,4 +5,6 @@ from . import printer_parser
 
 
 def test(printer):
-    return True
+    if printer is not None:
+        return True
+    return False
