@@ -97,8 +97,7 @@ class main:
     #READ FLAGS
     def readFlag(self, flag):
         try:
-            if flag == None:    
-                return None   
+            if flag == None:    return   
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
             if self.printerFlag[0] == 'RESET':
@@ -108,17 +107,12 @@ class main:
                     if self.printerFlag[0] == "INIT":
                         #get calibration data
                         self.myProcess.calibrate_data(self.printerFlag[1])
-                        return None
                     elif self.printerFlag[0] == "LAYER":
                         #get layer data
                         self.myCommand = self.myProcess.layer_change(self.printerFlag[1]) #GET IMAGE COMMAND
-                        return self.myCommand
                     elif self.printerFlag[0] == "TEST":
                         #get degub command
                         self.myCommand = input ("Enter command: ")
-                        return self.myCommand
-                    else:
-                        return None
                 else:
                     raise RuntimeError(f"Invalid flag: {flag}")
         except Exception as error:
@@ -132,13 +126,13 @@ class main:
             if self.myCommand is not None:
                 command_parts = self.myCommand.split()
                 if command_parts[1] == 'image':
-                    data = self.myClient.receive()
+                    self.data = client.by2im(self.data)
                     print("GOT IMAGE")
-                    return client.by2im(data)
+
                 elif command_parts[1] == 'printer':
-                    data = self.myClient.receive()
+                    self.data = client.by2com(self.data)
                     print("GOT DATA")
-                    return client.by2com(data)
+
         except Exception as error:
             raise RuntimeError(f"Error reading data: {error}")
     
@@ -147,7 +141,7 @@ class main:
     def process(self, data):
         try:
             if data is not None:
-                self.myProcess.LWOI_AMP(self.printerFlag, self.myData)  
+                self.myProcess.LWOI_AMP(self.myData, self.printerFlag)  
             else:
                 pass
         except Exception as error:
@@ -206,14 +200,14 @@ class main:
             while(self.myClient.connected):
                 self.myClient.checkStatus() #START WIAIT FOR SOMETHING FROM SERVER (USUALLY "PING")   
                 if self.myClient.status != 'WAIT':#IF PING RECIEVED:(MEANING FLAG WILL BE SENT)
-                    self.myCommand = self.readFlag(client.by2com(self.myClient.receive())) #PROCESS FLAG:(USUALLY LAYER OR START/STOP) RETURNS COMMAND:(USUALLY GET)
+                    self.readFlag(client.by2com(self.myClient.receive())) #PROCESS FLAG:(USUALLY LAYER OR START/STOP) RETURNS COMMAND:(USUALLY GET)
 
                     self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
                     self.wait() #WAIT FOR PONG:(READY FOR RESPONSE)
 
-                    self.myData = self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
-                    self.myCommand = self.process()#PROCESS DATA:(USALLY IMAGE) RETURNS COMMAND:(USUALLY SET)
+                    self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
+                    self.process()#PROCESS DATA:(USALLY IMAGE) RETURNS COMMAND:(USUALLY SET)
 
                     self.myClient.PONG() #SEND PONG TO INDICATE PROCESS COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
