@@ -14,7 +14,7 @@ class ThermalCamera:
         # Initialize the thermal camera
         try:
             # Initialize the thermal camera
-            self.camera = cv2.VideoCapture(com_port, cv2.CAP_DSHOW)
+            self.camera = cv2.VideoCapture(com_port)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 160)
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
             self.camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', '1', '6', ' '))

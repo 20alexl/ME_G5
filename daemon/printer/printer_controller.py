@@ -2,12 +2,12 @@
 
 # Code for controlling the 3D printer
 import serial
-import printer_commands as commands
+from . import printer_commands as commands
 
 class PrinterCommunication():
     """Class for handling communication with the 3D printer."""
 
-    def __init__(self, port='/dev/ttyUSB0', baudrate=250000):
+    def __init__(self, port='/dev/ttyUSB0', baudrate=115200):
         """
         Initialize the PrinterCommunication object.
         Args:
@@ -26,8 +26,8 @@ class PrinterCommunication():
         self.printing = False
         self.paused = False
         self.gcodeTail = "\r\n"
-        self.setCommands = commands.Commands(self)
         self.connect()
+        self.setCommands = commands.Commands(self)
 
     def connect(self):
         """
@@ -55,11 +55,12 @@ class PrinterCommunication():
         Returns:
             str: The response received from the printer.
         """
-        self.cmd = self.serial_connection.readline().decode().strip()
-        if not self.printing:
-            self.parse()
-            if self.cmd_split[0] == "FILE":
-                self.printing = True
+        self.cmd = self.serial_connection.readline().decode()
+        #print(self.cmd)
+        self.parse()
+        if self.cmd_split[0] == 'FLAVOR':
+            self.printing = True
+
         return self.cmd
 
     def close_connection(self):
@@ -79,15 +80,16 @@ class PrinterCommunication():
     def parse(self):
         """Parse the response"""
         if self.cmd is not None:
-            if self.printing:
-                self.cmd_split = self.cmd.split(':')
-                self.cmd_split[0].strip(';')
+            try:
+                self.cmd = self.cmd.strip()
+                self.cmd = self.cmd.strip('\r\n')
+                self.cmd = self.cmd.strip(';')
+                self.cmd = self.cmd.strip('//echo:')
+            except:
+                pass
+
+            self.cmd_split = self.cmd.split(':')
                 #REMOVE THE ; AND SPLIT BY : (LAYER, __)
-            else:
-                self.cmd_split = self.cmd.split(':')
-                self.cmd_split.append = self.cmd.split() #?
-                self.cmd_split[0].strip('//')
-                self.cmd_split[0].strip(';')
                 #REMOVE THE // AND SPLIT BY : (ACTION, __) or (FILE, ___)
 
     def get_status(self):
@@ -100,7 +102,7 @@ class PrinterCommunication():
         #Get response from printer
         self.receive_response()
         #Parse response
-        self.parse()
+        #print(self.cmd_split)
 
         #If we are not printing, return the status
         if not self.printing:  
@@ -108,15 +110,16 @@ class PrinterCommunication():
 
         #Return status
         if not self.init: #CHECK FOR START #GET INIT STATES
-            if self.cmd_split[0] == "TARGET_MACHINE.NAME":
+            if self.cmd_split[0] == 'LAYER_COUNT':
+                self.initState = self.initState + " " + (self.cmd).strip(";")
                 self.init = True
                 return {"INIT" + self.initState}
             else:
-                self.initState = self.initState + " " + self.cmd
+                self.initState = self.initState + " " + (self.cmd).strip(";")
                 return None
 
         else: #IF we have started a print
-            if self.cmd_split[0] == "LAYER": #LAYER FLAG
+            if self.cmd_split[0] == 'LAYER': #LAYER FLAG
                 return {"LAYER " + self.cmd_split[1]}
             #elif self.cmd_split[0] == "TIME": #TIME FLAG
                 return {"TIME " + self.cmd_split[1]}
@@ -129,15 +132,9 @@ if __name__ == "__main__":
     MAIN INITIALIZATION
     """
 
-    printer = PrinterCommunication('COM6', 115200)
+    printer = PrinterCommunication('COM4', 115200)
 
     while (True):
-        com = input("Press Enter! or enter command")
-        if com:
-            printer.send_command(com)
-        else:
-            #printer.send_command("M105")
-            printer.setCommands.get_temperatures()
-            pass
-        response = printer.receive_response()
-        print(response)
+        cmd = printer.get_status()
+        if cmd is not None:
+            print(cmd)

@@ -28,15 +28,15 @@ class main:
         self.myClient = client.client.CommunicationClient(host, port)
         self.myProcess = processing.process.ImageProcess()
 
-        self.myCommand = str(None)
-        self.myData = bytes(None)
+        self.myCommand = str
+        self.myData = bytes
 
         self.initPassed = bool(False)
         self.initStatus = "404"
         self.server_init_status = "101"
         self.printerFlag = str(None)
 
-        self.layer = 0
+        self.layer = int(0)
 
 
     #START
@@ -85,6 +85,7 @@ class main:
     #WAIT FOR TIMER
     def wait(self):
         try:
+            self.myClient.status = 'WAIT'
             self.myClient.checkStatus()
             while(self.myClient.timer):
                 self.myClient.checkStatus()
@@ -168,7 +169,7 @@ class main:
             if self.initPassed:#IF ALL TESTS PASS
                 self.wait()#WAIT FOR PING
                 self.server_init_status = (client.by2com(self.myClient.receive())) #RECIEVE TEST INIT STATUS
-                #self.myClient.PONG() #SEND PONG
+                #self.myClient.PONG() #SEND PONG ?
             if self.initStatus == self.server_init_status:
                 print("Passed!" + self.initStatus + " : " + self.server_init_status)
             else:
@@ -192,11 +193,10 @@ class main:
             sys.exit(1)
             
 
+
     """
     MAIN LOOP
     """
-
-
 
     def main(self):
         try:
@@ -205,7 +205,7 @@ class main:
 
             while(self.myClient.connected):
                 self.myClient.checkStatus() #START WIAIT FOR SOMETHING FROM SERVER (USUALLY "PING")   
-                if self.myClient.status is not 'WAIT':#IF PING RECIEVED:(MEANING FLAG WILL BE SENT)
+                if self.myClient.status != 'WAIT':#IF PING RECIEVED:(MEANING FLAG WILL BE SENT)
                     self.myCommand = self.readFlag(client.by2com(self.myClient.receive())) #PROCESS FLAG:(USUALLY LAYER OR START/STOP) RETURNS COMMAND:(USUALLY GET)
 
                     self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     MAIN INITIALIZATION
     """
     DEBUGGING = True
-    host = "192.168.10.191"  # Raspberry Pi IP address
+    host = "10.0.2.15"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
     
     myMain = main(host, port)

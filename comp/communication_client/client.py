@@ -6,6 +6,7 @@ TODO: Add documentation
 """
 
 # Imports
+import serial
 import socket
 
 class CommunicationClient:
@@ -22,6 +23,7 @@ class CommunicationClient:
         self.host = host
         self.port = port
         self.server_socket = None
+        self.client_socket = None
         self.connected = False
         self.running = bool(False)
         self.status = str('WAIT')
@@ -36,7 +38,7 @@ class CommunicationClient:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_socket.connect((self.host, self.port))
             print(f"Connected to server at {self.host}:{self.port}")
-            self.server_socket.settimeout(0.5)
+            self.server_socket.settimeout(0.2)
             self.connected = True
         except Exception as error:
             raise RuntimeError(f"Error connecting to server: {error}")
@@ -105,7 +107,9 @@ class CommunicationClient:
         """
         try:
             if self.status == 'WAIT':
-                data = (self.receive()).decode()
+                data = (self.receive())
+                if data is not None:
+                    data = data.decode()
                 if data == 'PONG':
                     self.status = 'PONG'
                 elif data == 'PING':
@@ -115,7 +119,10 @@ class CommunicationClient:
                 
             if self.status == 'PING':
                 self.timer = True
-                if (self.receive()).decode() == 'PONG':
+                data = (self.receive())
+                if data is not None:
+                    data = data.decode()
+                if data == 'PONG':
                     self.timer = False
                     self.status = 'PONG'
             

@@ -1,7 +1,7 @@
 #daemon/printer/__init__.py
 
 from . import printer_controller
-from . import printer_parser
+from . import printer_commands
 
 
 def test(printer):

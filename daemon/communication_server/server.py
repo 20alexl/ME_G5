@@ -6,6 +6,7 @@ TODO: Add documentation
 """
 
 # Imports
+import serial
 import socket
 
 
@@ -42,7 +43,8 @@ class CommunicationServer:
                 self.running = True
                 print(f"Server listening on {self.host}:{self.port}")
                 self.client_socket, client_address = self.server_socket.accept()
-                self.client_socket.settimeout(0.5)
+                self.client_socket.settimeout(0.2)
+                self.server_socket.settimeout(0.2)
                 self.connected = True
 
         except socket.error as error:
@@ -60,7 +62,7 @@ class CommunicationServer:
                 self.connected = False
                 print("Server stopped")
                 self.running = False
-                self.status = 'None'
+                self.status = 'STOP'
 
         except socket.error as error:
             raise RuntimeError(f"Error stopping server: {error}")
@@ -73,7 +75,7 @@ class CommunicationServer:
         try:
             if self.connected:
                 self.setPING()
-                if data:
+                if data is not None:
                     self.client_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.client_socket.sendall(data)
                 else:
@@ -123,34 +125,43 @@ class CommunicationServer:
         Args: data: 'PING' or 'PONG' for init, images or commands/data respectively
         """
         try:
-            if self.state == 'WAIT':
-                data = (self.receive()).decode()
-                if data == 'PONG':
-                    self.state = 'PONG'
-                elif data == 'PING':
-                    self.state = 'PONG'
-                    
-                self.timer = True
-                
-            if self.state == 'PING':
-                self.timer = True
-                if (self.receive()).decode() == 'PONG':
-                    self.timer = False
-                    self.state = 'PONG'
+            if self.status == 'STOP':   pass
+            else:
+                if self.status == 'WAIT':
+                    data = self.receive()
+                    if data is not None:
+                        data = data.decode()
+                    if data == 'PONG':
+                        self.status = 'PONG'
+                        return
+                    elif data == 'PING':
+                        self.status = 'PONG'
+                        return
+
+                    self.timer = True
+
+                if self.status == 'PING':
+                    self.timer = True
+                    data = self.receive()
+                    if data is not None:
+                        data = data.decode()
+                    if data == 'PONG':
+                        self.timer = False
+                        #self.status = 'WAIT'
             
-            if self.state == 'PONG':
-                self.timer = False
-                self.state = 'WAIT'
+                if self.status == 'PONG':
+                    self.timer = False
+                    #self.status = 'WAIT'
 
         except Exception as error:
             raise error
 
     def setPING(self):
-        self.state = 'PING'
+        self.status = 'PING'
 
     def setPONG(self):
-        self.state = 'PONG'
+        self.status = 'PONG'
 
     def setWAIT(self):
-        self.state = 'WAIT'
+        self.status = 'WAIT'
 

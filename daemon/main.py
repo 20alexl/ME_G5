@@ -7,6 +7,7 @@ Main controller for Pi(daemon)
 #IMPORTS
 import time
 import sys
+import serial
 
 #CUSTOME CLASSES
 import camera as camera
@@ -27,10 +28,6 @@ class main:
 
         #Global Instances
         self.myServer = server.server.CommunicationServer(host, port)#INITIALIZE SERVER(HOST ADRESS, PROT #)
-        if printer_port is not None:
-            self.myPrinter = printer.printer_controller.PrinterCommunication(printer_port)#INITIALIZE PRINTER(USB PORT)
-        else:
-            self.myPrinter = None
         if cam1 is not None:
             self.cam1 = camera.camera_controller.BasicUSBcamera(cam1)#INITIALIZE CAMERA(USB PORT)
         else:
@@ -43,6 +40,10 @@ class main:
             self.therm2 = camera.camera_controller.ThermalCamera(therm2)#INITIALIZE CAMERA(USB PORT)
         else:
             self.therm2 = None
+        if printer_port is not None:
+            self.myPrinter = printer.printer_controller.PrinterCommunication(printer_port)#INITIALIZE PRINTER(USB PORT)
+        else:
+            self.myPrinter = None
             
         self.myCommand = None
         self.myData = None
@@ -118,10 +119,12 @@ class main:
     #WAIT FOR TIMER
     def wait(self):
         try:
+            self.myServer.status = 'WAIT'
             self.myServer.checkStatus()
             while(self.myServer.timer):
                 self.myServer.checkStatus()
                 print("WAITING")
+                print(self.myServer.status)
 
         except Exception as error:
             raise error
@@ -130,6 +133,7 @@ class main:
     #PROCESS COMMANDS    
     def process(self, command):
         try:
+            if command is None:     return None
             self.myCommand = command
             command_parts = self.myCommand.split()
             if self.myCommand is not None:
@@ -247,19 +251,35 @@ class main:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
             if self.initPassed:#IF ALL TESTS PASS
+                print("1")
                 self.myServer.PING()#SEND PING(INIT PING)
+                print("1")
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
-                self.wait()#WAIT FOR PONG
+                print("1")
                 print("Passed!" + self.initStatus)
 
+
             while self.myServer.connected:
-                if server.by2com(self.myServer.receive()) == 'PING':
-                    print("PINGGED")
-                    self.myData = self.process(server.by2com(self.myServer.receive())) #PROCESS COMMAND
-                    print("PONGGED")
-                    self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
-                    self.myServer.send(server.com2by(self.myData)) #SEND DATA
-                    print("PONGGED")
+                self.wait()
+                #print("WAITING")
+                # if not self.myServer.timer:
+                #     print("PINGGED")
+                #     command = server.by2com(self.myServer.receive())
+                #     print(command)
+                #     self.myData = self.process(command) #PROCESS COMMAND
+                #     print("PONGGED")
+                #     self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
+                #     self.myServer.send(server.com2by(self.myData)) #SEND DATA
+                #     print("PONGGED")
+
+                print("PINGGED")
+                command = server.by2com(self.myServer.receive())
+                print(command)
+                self.myData = self.process(command) #PROCESS COMMAND
+                print("PONGGED")
+                self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
+                self.myServer.send(server.com2by(self.myData)) #SEND DATA
+                print("PONGGED")
 
         except Exception as error:
             #myServer.PONG()
@@ -290,7 +310,7 @@ class main:
             while(self.myServer.connected):
                 self.printerFlag = self.myPrinter.get_status() #CHECK FOR SET FLAGS
                 self.myServer.checkStatus() #START WIAIT FOR SOMETHING FROM HOST (USUALLY "PING")
-
+# 
                 if self.printerFlag is not None:
                     self.myServer.PING() #SEND PING TO INDICATE FLAG | TIMER STATE IS PING
                     self.myServer.send(server.com2by(self.printerFlag)) #SEND FLAG
@@ -301,7 +321,7 @@ class main:
                     #NO PING PONG ON SET COMMANDS
                     self.printerFlag = None
 
-                elif self.myServer.status is not 'WAIT':
+                elif self.myServer.status != 'WAIT':
                     self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
                 
 
@@ -320,14 +340,14 @@ if __name__ == "__main__":
     """
 
     DEBUGGING = True
-    host = "192.168.10.191"  # Raspberry Pi IP address
+    host = "10.0.2.15"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
     cam1Port = 0
-    therm1Port = 1
+    therm1Port = 0
     therm2Port = 2
-    printerPort = 3
+    printerPort = '/dev/ttyUSB0'
 
-    myMain = main(host, port, printerPort, cam1Port, None, None)
+    myMain = main(host, port, printerPort, None, therm1Port, None)
     if DEBUGGING:
         myMain.debug() #DEBUG
     else:

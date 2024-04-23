@@ -8,27 +8,27 @@ import numpy as np
 class ImageProcess:
     def __init__(self):
         self.image = None
-        self.printerFlag = str(None)
+        self.printerFlag = str
         self.runnning = bool(True)
 
         self.DArray = None
 
         self.layer = int(0)
-        self.layerHeight = int(None)
-        self.layerMax = int(None)
+        self.layerHeight = int
+        self.layerMax = int
 
-        self.minX = int(None)
-        self.minY = int(None)
-        self.minZ = int(None)
-        self.maxX = int(None)
-        self.maxY = int(None)
-        self.maxZ = int(None)
-        self.E = int(None)
-        self.Temp = int(None) 
-        self.Bed = int(None)
+        self.minX = int
+        self.minY = int
+        self.minZ = int
+        self.maxX = int
+        self.maxY = int
+        self.maxZ = int
+        self.E = int
+        self.Temp = int
+        self.Bed = int
 
-        self.CalTemp = int(None)
-        self.CalBed = int(None)
+        self.CalTemp = int
+        self.CalBed = int
 
 
     def calibrate_data(self, init):
