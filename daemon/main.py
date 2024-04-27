@@ -7,7 +7,7 @@ Main controller for Pi(daemon)
 #IMPORTS
 import time
 import sys
-import serial
+import cv2
 
 #CUSTOME CLASSES
 import camera as camera
@@ -106,25 +106,11 @@ class main:
                 camera.test(self.therm1)
             if self.therm2 is not None:    
                 camera.test(self.therm2)
-            if self.myPrinter.connected:    
+            if self.myPrinter is not None:    
                 printer.test(self.myPrinter)
 
             self.initPassed = True
             self.initStatus = "200"
-
-        except Exception as error:
-            raise error
-
-
-    #WAIT FOR TIMER
-    def wait(self):
-        try:
-            self.myServer.status = 'WAIT'
-            self.myServer.checkStatus()
-            while(self.myServer.timer):
-                self.myServer.checkStatus()
-                #print("WAITING")
-                print(self.myServer.status)
 
         except Exception as error:
             raise error
@@ -188,11 +174,11 @@ class main:
                     if ret:
                         self.myServer.PONG()
                         self.myServer.send(server.im2by(self.myData))
-                        self.wait()
+                        self.myServer.wait()
                     elif self.myData.dtype == 'str':
                         self.myServer.PONG()
                         self.myServer.send(server.com2by(self.myData))
-                        self.wait()
+                        self.myServer.wait()
                     else:
                         raise RuntimeError(f"Invalid Process data type")
 
@@ -222,16 +208,16 @@ class main:
                     self.myData = self.myPrinter.setCommands.set_flow_rate(command_parts[3])
                 else:
                     raise RuntimeError(f"Invalid device")
+                
+                if self.myData is not None:  # Check if image data is not None
+                    self.myServer.PONG()
+                    self.myServer.send(server.com2by(self.myData))
+                else:
+                    raise RuntimeError(f"Error: Failed to capture data")
 
             else:
                 raise RuntimeError(f"Invalid command")
             
-            if self.myData is not None:  # Check if image data is not None
-                self.myServer.PONG()
-                self.myServer.send(server.com2by(self.myData))
-
-            else:
-                raise RuntimeError(f"Error: Failed to capture data")
 
         except Exception as error:
             raise error
@@ -255,17 +241,14 @@ class main:
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
                 print("1")
                 print("Passed!" + self.initStatus)
-
+                self.myServer.wait()
 
             while self.myServer.connected:
-                self.wait()
+                self.myServer.wait()
                 print("PINGGED")
                 command = server.by2com(self.myServer.receive())
                 print(command)
                 self.myData = self.process(command) #PROCESS COMMAND
-                print("PONGGED")
-                self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
-                self.myServer.send(server.com2by(self.myData)) #SEND DATA
                 print("PONGGED")
 
         except Exception as error:
@@ -291,7 +274,7 @@ class main:
             if self.initPassed:#IF ALL TESTS PASS
                 self.myServer.PING()#SEND PING(INIT PING)
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
-                self.wait()#WAIT FOR PONG
+                self.myServer.wait()#WAIT FOR PONG
                 print("Passed!" + self.initStatus)
 
             while(self.myServer.connected):
@@ -301,7 +284,7 @@ class main:
                 if self.printerFlag is not None:
                     self.myServer.PING() #SEND PING TO INDICATE FLAG | TIMER STATE IS PING
                     self.myServer.send(server.com2by(self.printerFlag)) #SEND FLAG
-                    self.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+                    self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
                     self.process(server.by2com(self.myServer.receive())) #PROCESS INITIAL COMMAND (USUALY A GET COMMAND)
                     #PING AND PONG INSIDE OF PROCESS
                     self.process(server.by2com(self.myServer.receive())) #PROCESS SECOND COMMAND (USUALY A SET COMMAND)
@@ -328,14 +311,15 @@ if __name__ == "__main__":
     """
 
     DEBUGGING = True
-    host = "10.0.2.15"  # Raspberry Pi IP address
+    #host = "10.0.2.15"  # Raspberry Pi IP address
+    host = "192.168.10.191"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
     cam1Port = 0
-    therm1Port = 0
-    therm2Port = 2
+    therm1Port = 2
+    therm2Port = None
     printerPort = '/dev/ttyUSB0'
 
-    myMain = main(host, port, printerPort, None, therm1Port, None)
+    myMain = main(host, port, None, cam1Port, therm1Port, therm2Port)
     if DEBUGGING:
         myMain.debug() #DEBUG
     else:

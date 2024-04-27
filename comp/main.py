@@ -3,7 +3,6 @@
 Main Controller for Computer(comp)
 """
 
-
 #IMPORTS
 import time
 import sys
@@ -80,24 +79,12 @@ class main:
                 self.initStatus = "200"
         except Exception as error:
             raise error
-    
 
-    #WAIT FOR TIMER
-    def wait(self):
-        try:
-            self.myClient.status = 'WAIT'
-            self.myClient.checkStatus()
-            while(self.myClient.timer):
-                self.myClient.checkStatus()
-                print("WAITING")
-        except Exception as error:
-            raise error
-        
 
     #READ FLAGS
     def readFlag(self, flag):
         try:
-            if flag == None:    return   
+            if flag is None:    return   
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
             if self.printerFlag[0] == 'RESET':
@@ -120,17 +107,17 @@ class main:
     
 
     #READ DATA
-    def readData(self):
+    def readData(self, data):
         try:
             # Check if the data starts with the JPEG magic number
             if self.myCommand is not None:
                 command_parts = self.myCommand.split()
                 if command_parts[1] == 'image':
-                    self.data = client.by2im(self.data)
+                    self.data = client.by2im(data, command_parts[2])
                     print("GOT IMAGE")
 
                 elif command_parts[1] == 'printer':
-                    self.data = client.by2com(self.data)
+                    self.data = client.by2com(data)
                     print("GOT DATA")
 
         except Exception as error:
@@ -138,14 +125,15 @@ class main:
     
 
     #PROCESS DATA
-    def process(self, data):
+    def process(self):
         try:
-            if data is not None:
-                self.myProcess.LWOI_AMP(self.myData, self.printerFlag)  
+            if self.data is not None:
+                self.myProcess.display_image(self.data)
+                #self.myProcess.LWOI_AMP(self.myData, self.printerFlag)  
             else:
                 pass
         except Exception as error:
-            raise RuntimeError(f"Error reading flag: {error}")
+            raise RuntimeError(f"Error processing flag: {error}")
 
 
     """
@@ -161,9 +149,9 @@ class main:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
             if self.initPassed:#IF ALL TESTS PASS
-                self.wait()#WAIT FOR PING
+                self.myClient.wait()#WAIT FOR PING
                 self.server_init_status = (client.by2com(self.myClient.receive())) #RECIEVE TEST INIT STATUS
-                #self.myClient.PONG() #SEND PONG ?
+                self.myClient.PONG() #SEND PONG ?
             if self.initStatus == self.server_init_status:
                 print("Passed!" + self.initStatus + " : " + self.server_init_status)
             else:
@@ -172,16 +160,18 @@ class main:
             while(self.myClient.running):
                 if self.myClient.connected:
                     print("FLAG")
-                    self.myCommand = self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
+                    self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
 
                     self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
+
                     print("FLAG")
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
                     print("FLAG")
-                    self.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+                    self.myClient.wait() #WAIT FOR PONG(READY FOR RESPONSE)
 
-                    self.myData = self.readData() #PROCESS DATA RETURNS COMMAND (DEGUB)
-                    self.process(self.myData)
+                    self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
+                    self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
+                    self.process()
         except Exception as error:
             print(f"Error Debugging: {error}")
             sys.exit(1)
@@ -204,7 +194,7 @@ class main:
 
                     self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
-                    self.wait() #WAIT FOR PONG:(READY FOR RESPONSE)
+                    self.myClient.wait() #WAIT FOR PONG:(READY FOR RESPONSE)
 
                     self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
                     self.process()#PROCESS DATA:(USALLY IMAGE) RETURNS COMMAND:(USUALLY SET)
@@ -223,7 +213,8 @@ if __name__ == "__main__":
     MAIN INITIALIZATION
     """
     DEBUGGING = True
-    host = "10.0.2.15"  # Raspberry Pi IP address
+    #host = "10.0.2.15"  # Raspberry Pi IP address
+    host = "192.168.10.191"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
     
     myMain = main(host, port)

@@ -1,5 +1,6 @@
 #daemon/camera/camera_controller.py
 import cv2
+import time
 
 class ThermalCamera:
     """Represents a thermal camera for capturing thermal images."""
@@ -36,6 +37,8 @@ class ThermalCamera:
         try:
             if self.camera is not None:
                 # Capture a frame from the thermal camera
+                self.flush()
+                self.flush
                 ret, frame = self.camera.read()
                 return ret, frame
             else:
@@ -48,6 +51,20 @@ class ThermalCamera:
         """Release the thermal camera."""
         if self.camera is not None:
             self.camera.release()
+
+    def flush(self):
+        frames_with_delay_count = 0
+        while frames_with_delay_count <= 1:
+            start_time = cv2.getTickCount()
+
+            _, _ = self.camera.read()  # Grabs a frame from the camera
+
+            end_time = cv2.getTickCount()
+            elapsed_ms = (end_time - start_time) / cv2.getTickFrequency() * 1000  # Calculate elapsed time in milliseconds
+
+            if elapsed_ms > 0:
+                frames_with_delay_count += 1
+
 
 
 class BasicUSBcamera:
@@ -79,7 +96,10 @@ class BasicUSBcamera:
         try:
             if self.camera is not None:
                 # Capture a frame from the basic USB camera
+                self.flush()
+                self.flush()
                 ret, frame = self.camera.read()
+                
                 return ret, frame
             else:
                 return False, None
@@ -91,3 +111,17 @@ class BasicUSBcamera:
         """Release the basic USB camera."""
         if self.camera is not None:
             self.camera.release()
+
+    def flush(self):
+        frames_with_delay_count = 0
+        while frames_with_delay_count <= 1:
+            start_time = cv2.getTickCount()
+
+            _, _ = self.camera.read()  # Grabs a frame from the camera
+
+            end_time = cv2.getTickCount()
+            elapsed_ms = (end_time - start_time) / cv2.getTickFrequency() * 1000  # Calculate elapsed time in milliseconds
+
+            if elapsed_ms > 0:
+                frames_with_delay_count += 1
+

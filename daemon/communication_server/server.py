@@ -90,11 +90,11 @@ class CommunicationServer:
         """
         try:
             if self.connected:
-                length_data = self.server_socket.recv(4)
+                length_data = self.client_socket.recv(4)
                 length = int.from_bytes(length_data, 'big')
                 data = b''
                 while len(data) < length:
-                    data += self.server_socket.recv(length - len(data))
+                    data += self.client_socket.recv(length - len(data))
                 return data
 
         except socket.timeout:
@@ -108,14 +108,14 @@ class CommunicationServer:
         """
         Send PING message to the client.
         """
-        self.send('PING'.encode())
+        self.send(b'PING')
         self.setPING()
 
     def PONG(self):
         """
         Send PONG message to the client.
         """
-        self.send('PONG'.encode())
+        self.send(b'PONG')
         self.setPONG()
 
     def checkStatus(self):
@@ -129,7 +129,6 @@ class CommunicationServer:
             else:
                 if self.status == 'WAIT':
                     data = self.receive()
-                    print(data)
                     if data is not None:
                         data = data.decode()
                     if data == 'PONG':
@@ -166,3 +165,19 @@ class CommunicationServer:
     def setWAIT(self):
         self.status = 'WAIT'
 
+
+    #WAIT FOR TIMER
+    def wait(self):
+        try:
+            self.setWAIT()
+            #self.server_socket.settimeout(2)
+            self.checkStatus()
+            while(self.timer):
+                self.checkStatus()
+                #print("WAITING")
+                print(self.status)
+
+            #self.server_socket.settimeout(0.2)
+
+        except Exception as error:
+            raise error

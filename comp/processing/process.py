@@ -124,9 +124,21 @@ class ImageProcess:
         try:
             self.image = image
             if self.image is not None:
-                cv2.imshow("Image", self.image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                print(image.ndim)
+                print(image.dtype)
+                if image.ndim == 2:
+                    print("THERMAL")
+                    newframe = image.copy()
+                    cv2.normalize(image, newframe, 0, 255, cv2.NORM_MINMAX)
+                    newframe = np.uint8(newframe)
+                    newframe = cv2.applyColorMap(newframe, cv2.COLORMAP_INFERNO)
+                    cv2.imshow("Theraml", newframe)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
+                else:
+                    cv2.imshow("Image", self.image)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
             else:
                 raise RuntimeError("No image to display")
         except Exception as error:

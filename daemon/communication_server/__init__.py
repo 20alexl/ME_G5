@@ -19,7 +19,8 @@ def com2by(data):
         if data is None:
             return None
         else:
-            return data.encode('utf-8')
+            data =  data.encode()
+            return data
     except Exception as error:
         raise RuntimeError(f"Error converting text to bytes: {error}")
         return None
@@ -38,7 +39,11 @@ def im2by(data):
         if data is None:
             return None
         else:
-            return cv2.imencode('.jpg', data)[1].tobytes()
+            if data.ndim == 2:
+                _, encoded_image = cv2.imencode('.png', data, [cv2.IMWRITE_PNG_BILEVEL, 0])
+            else:
+                _, encoded_image = cv2.imencode('.png', data)
+            return encoded_image.tobytes()
     except Exception as error:
         raise RuntimeError(f"Error converting image to bytes: {error}")
         return None
@@ -57,7 +62,8 @@ def by2com(data):
         if data is None:
             return None
         else:
-            return data.decode('utf-8')
+            data = data.decode()
+            return data
     except Exception as error:
         raise RuntimeError(f"Error converting bytes to text: {error}")
         return None

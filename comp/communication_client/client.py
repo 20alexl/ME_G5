@@ -46,10 +46,10 @@ class CommunicationClient:
     def close_connection(self):
         """Close the connection with the server."""
         if self.connected:
-            self.send('quit')
+            self.send(b'quit')
             self.server_socket.close()
             print("Connection closed")
-            
+
     def send(self, data):
         """
         Send encoded bytes to the server.
@@ -59,7 +59,9 @@ class CommunicationClient:
                 if data is not None:
                     self.server_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.server_socket.sendall(data)
+                    print("sent: " + str(data))
                 else:
+                    print("BAD")
                     pass
         except socket.error as error:
             raise RuntimeError(f"Error sending data: {error}")
@@ -73,7 +75,7 @@ class CommunicationClient:
                 length_data = self.server_socket.recv(4)
                 length = int.from_bytes(length_data, 'big')
                 data = b''
-            
+
                 while len(data) < length:
                     data += self.server_socket.recv(length - len(data))
                 return data
@@ -89,14 +91,14 @@ class CommunicationClient:
         """
         Send PING message to the server.
         """
-        self.send('PING'.encode())
+        self.send(b'PING')
         self.setPING()
 
     def PONG(self):
         """
         Send PONG message to the server.
         """
-        self.send('PONG'.encode())
+        self.send(b'PONG')
         self.setPONG()
 
     def checkStatus(self):
@@ -141,3 +143,19 @@ class CommunicationClient:
         
     def setWAIT(self):
         self.status = 'WAIT'
+
+    #WAIT FOR TIMER
+    def wait(self):
+        try:
+            self.setWAIT()
+            #self.server_socket.settimeout(2)
+            self.checkStatus()
+            while(self.timer):
+                self.checkStatus()
+                #print("WAITING")
+                print(self.status)
+
+            #self.server_socket.settimeout(0.2)
+
+        except Exception as error:
+            raise error

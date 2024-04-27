@@ -18,7 +18,8 @@ def com2by(data):
         if data is None:
             return None
         else:
-            return data.encode()
+            data = data.encode()
+            return data
     except Exception as error:
         raise RuntimeError(f"Error converting text to bytes: {error}")
         return None
@@ -56,12 +57,13 @@ def by2com(data):
         if data is None:
             return None
         else:
-            return data.decode()
+            data =  data.decode()
+            return data
     except Exception as error:
         raise RuntimeError(f"Error converting bytes to text: {error}")
         return None
     
-def by2im(data):
+def by2im(data, type):
     """
     Convert bytes data to image.
 
@@ -75,7 +77,12 @@ def by2im(data):
         if data is None:
             return None
         else:
-            return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+            if type == "therm1" or type == "therm2":
+                data = cv2.imdecode(np.frombuffer(data, np.uint16), cv2.IMREAD_UNCHANGED)
+                return data
+            else:
+                data = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                return data
     except Exception as error:
         raise RuntimeError(f"Error converting bytes to text: {error}")
         return None
