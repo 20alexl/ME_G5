@@ -129,6 +129,7 @@ class CommunicationServer:
             else:
                 if self.status == 'WAIT':
                     data = self.receive()
+                    print(data)
                     if data is not None:
                         data = data.decode()
                     if data == 'PONG':

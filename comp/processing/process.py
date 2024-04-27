@@ -80,7 +80,7 @@ class ImageProcess:
             if self.layer == 0:
                 return self.setCommands.get_calibration_temp()
             else:
-                return self.setCommands.get_image_therm1()
+                return self.setCommands.get_image()
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
         #READ LAYER CHANGE

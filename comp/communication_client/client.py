@@ -107,7 +107,7 @@ class CommunicationClient:
         """
         try:
             if self.status == 'WAIT':
-                data = (self.receive())
+                data = self.receive()
                 if data is not None:
                     data = data.decode()
                 if data == 'PONG':

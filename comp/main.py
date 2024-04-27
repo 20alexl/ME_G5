@@ -10,7 +10,7 @@ import sys
 import cv2
 
 #CUSTOME CLASSES
-import processing as processing
+import processing as processe
 import communication_client as client
 
 """
@@ -26,7 +26,7 @@ class main:
 
         #Global Instances
         self.myClient = client.client.CommunicationClient(host, port)
-        self.myProcess = processing.process.ImageProcess()
+        self.myProcess = processe.process.ImageProcess()
 
         self.myCommand = str
         self.myData = bytes
