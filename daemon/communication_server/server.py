@@ -57,6 +57,7 @@ class CommunicationServer:
         """
         try:
             if self.connected:
+                self.send(b"STOP Server stopped or reset")
                 self.client_socket.close()
                 self.server_socket.close()
                 self.connected = False
@@ -173,9 +174,9 @@ class CommunicationServer:
             #self.server_socket.settimeout(2)
             self.checkStatus()
             while(self.timer):
-                self.checkStatus()
+                    self.checkStatus()
                 #print("WAITING")
-                print(self.status)
+                #print(self.status)
 
             #self.server_socket.settimeout(0.2)
 

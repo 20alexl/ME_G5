@@ -1,6 +1,7 @@
 #daemon/camera/camera_controller.py
 import cv2
 import time
+import numpy as np
 
 class ThermalCamera:
     """Represents a thermal camera for capturing thermal images."""
@@ -15,7 +16,7 @@ class ThermalCamera:
         # Initialize the thermal camera
         try:
             # Initialize the thermal camera
-            self.camera = cv2.VideoCapture(com_port)
+            self.camera = cv2.VideoCapture(com_port + cv2.CAP_V4L2)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 160)
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 120)
             self.camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('Y', '1', '6', ' '))
@@ -38,7 +39,7 @@ class ThermalCamera:
             if self.camera is not None:
                 # Capture a frame from the thermal camera
                 self.flush()
-                self.flush
+                self.flush()
                 ret, frame = self.camera.read()
                 return ret, frame
             else:

@@ -69,6 +69,8 @@ class ImageProcess:
                 if init_split[0] == 'LAYER_COUNT':
                     self.layerMax = (init_split[1])
 
+            return self.setCommands.get_temperatures()
+
         except Exception as error:
             raise RuntimeError(f"Error calibrate_data: {error}")
         #READ INIT
@@ -77,10 +79,7 @@ class ImageProcess:
     def layer_change(self, layer):
         try:
             self.layer = layer
-            if self.layer == 0:
-                return self.setCommands.get_calibration_temp()
-            else:
-                return self.setCommands.get_image()
+            return self.setCommands.get_image("therm1")
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
         #READ LAYER CHANGE
@@ -102,9 +101,11 @@ class ImageProcess:
         except Exception as error:
             pass
 
-    def LWOI_AMP(self, image, flag, calib=None):
+    def LWOI_AMP(self, image, cmd):
         try:
             if self.layer == 0:
+                cmd_split = cmd.split(" ")
+                calib = [float(cmd_split[0]), float(cmd_split[1])]
                 self.CalBed = calib[0] #BED TEMP
                 self.CalNozzle = calib[1] #NOZZLE TEMP
             self.DArray[self.layer] = image.copy()
@@ -122,21 +123,27 @@ class ImageProcess:
 
     def display_image(self, image):
         try:
-            self.image = image
-            if self.image is not None:
-                print(image.ndim)
-                print(image.dtype)
+            if image is not None:
                 if image.ndim == 2:
-                    print("THERMAL")
-                    newframe = image.copy()
-                    cv2.normalize(image, newframe, 0, 255, cv2.NORM_MINMAX)
-                    newframe = np.uint8(newframe)
-                    newframe = cv2.applyColorMap(newframe, cv2.COLORMAP_INFERNO)
-                    cv2.imshow("Theraml", newframe)
+                    image = image.copy()
+                    image = cv2.medianBlur(image, 5)#used to restore lost image date due to bad frame rate
+
+                    height, width = image.shape[:2]
+
+                    top = 1
+                    bottom = height - 1
+                    left = 1
+                    right = width - 1
+                    image = image[top:bottom, left:right] #Crop image border due to bad framerate(easiest solution)
+
+                    cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+                    image = np.uint8(image)
+                    image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
+                    cv2.imshow("Theraml", image)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
                 else:
-                    cv2.imshow("Image", self.image)
+                    cv2.imshow("RGB", image)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
             else:

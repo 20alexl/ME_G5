@@ -1,9 +1,8 @@
 #/daemon/communication_server/__init__.py
 
-import time
 from . import server
 import cv2
-import socket
+import numpy as np
 
 def com2by(data):
     """
@@ -39,10 +38,8 @@ def im2by(data):
         if data is None:
             return None
         else:
-            if data.ndim == 2:
-                _, encoded_image = cv2.imencode('.png', data, [cv2.IMWRITE_PNG_BILEVEL, 0])
-            else:
-                _, encoded_image = cv2.imencode('.png', data)
+            _, encoded_image = cv2.imencode('.png', data)
+            encoded_image = np.array(encoded_image)
             return encoded_image.tobytes()
     except Exception as error:
         raise RuntimeError(f"Error converting image to bytes: {error}")

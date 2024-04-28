@@ -25,7 +25,7 @@ class Commands:
         """
         Get the temperatures of the bed and extruder(s).
         """
-        return ("get printer temps")
+        return ("get printer temp")
 
 
     def cancel_print(self):
@@ -126,3 +126,10 @@ class Commands:
     
     def get_image(self, cam):
         return ("get image ", + {cam})
+    
+    def layer0(self):
+        try:
+            cmd = self.get_image("therm1") + '\n' + self.get_temperatures()
+            return (cmd)
+        except Exception as error:
+            pass

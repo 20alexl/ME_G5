@@ -72,9 +72,8 @@ class main:
             if self.myServer.running:
                 while self.myServer.connected:
                     self.myServer.stop_server()
-                #if myPrinter.connected:
-                #    myPrinter.disconnect()
-                #    pass
+                if self.myPrinter is not None:
+                    self.myPrinter.disconnect()
                 if self.cam1 is not None:
                     self.cam1.release()
                 if self.therm1 is not None:
@@ -127,9 +126,14 @@ class main:
                 raise RuntimeError(f"Invalid command format")
 
             command_type = command_parts[0]
-            if command_type == 'quit':
-                self.reset() 
-                exit
+            if command_type == 'RESET':
+                self.myServer.PONG()
+                self.reset()
+
+            if command_type == 'STOP':
+                self.myServer.PONG()
+                self.stop()
+                sys.exit(1) 
 
             device = command_parts[1]
             if command_type == 'get':
@@ -146,7 +150,7 @@ class main:
                         self.myData = self.myPrinter.setCommands.get_print_speed()
                     elif command_parts[2] == 'temp':
                         #Implement logic to get temperature
-                        self.myData = self.myPrinter.setCommands.get_bed_temperature() + self.myPrinter.setCommands.get_extruder_temperature()
+                        self.myData = self.myPrinter.setCommands.get_temperatures()
                     elif command_parts[2] == 'state':
                         #Implement logic to get state
                         self.myData = self.myPrinter.setCommands.get_printer_state
@@ -229,34 +233,35 @@ class main:
 
     def debug(self):
         try:
+            self.stop()
             self.start()
 
             if self.myServer.connected:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
             if self.initPassed:#IF ALL TESTS PASS
-                print("1")
                 self.myServer.PING()#SEND PING(INIT PING)
-                print("1")
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
-                print("1")
                 print("Passed!" + self.initStatus)
                 self.myServer.wait()
 
             while self.myServer.connected:
                 self.myServer.wait()
-                print("PINGGED")
-                command = server.by2com(self.myServer.receive())
-                print(command)
-                self.myData = self.process(command) #PROCESS COMMAND
-                print("PONGGED")
+                if self.myServer.status != 'WAIT':
+                    print("PINGGED")
+                    command = server.by2com(self.myServer.receive())
+                    print(command)
+                    self.myData = self.process(command) #PROCESS COMMAND
+                    print("PONGGED")
 
         except Exception as error:
             #myServer.PONG()
             #myServer.send(server.com2by(error))
             #myServer.PING()
             print(f"Error Debugging: {error}")
-            sys.exit(1)
+            self.myServer.PONG()
+            self.myServer.send(server.com2by(f"Error Debugging: {error}"))
+            self.reset()
 
 
     """
@@ -265,6 +270,7 @@ class main:
 
     def main(self):
         try:
+            self.stop()
             self.start()
 
             if self.myServer.connected:
@@ -301,7 +307,7 @@ class main:
 
         except Exception as error:
             print(error)
-            sys.exit(1)
+            #sys.exit(1)
     
 
 #MAIN
@@ -319,8 +325,10 @@ if __name__ == "__main__":
     therm2Port = None
     printerPort = '/dev/ttyUSB0'
 
-    myMain = main(host, port, None, cam1Port, therm1Port, therm2Port)
-    if DEBUGGING:
-        myMain.debug() #DEBUG
-    else:
-        myMain.main() #MAIN
+    while True:
+        myMain = main(host, port, None, cam1Port, therm1Port, therm2Port)
+
+        if DEBUGGING:
+            myMain.debug() #DEBUG
+        else:
+            myMain.main() #MAIN

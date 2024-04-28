@@ -56,7 +56,7 @@ class main:
             if self.myClient.running:
                 while self.myClient.connected:
                     self.myClient.close_connection()
-                    
+
         except Exception as error:
             raise RuntimeError(f"Error Stop Main: {error}")
     
@@ -64,9 +64,7 @@ class main:
     #RESET
     def reset(self):
         try:
-            if self.myClient.connected:
-                    self.stop()
-                    exit
+            sys.exit(1)
         except Exception as error:
             raise RuntimeError(f"Error Reset Main: {error}")
     
@@ -88,12 +86,16 @@ class main:
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
             if self.printerFlag[0] == 'RESET':
+                self.myClient.send("RESET")
+                self.reset()
+            if self.printerFlag[0] == 'STOP':
+                self.myClient.send("STOP")
                 self.reset()
             else:
                 if len(self.printerFlag) > 0:
                     if self.printerFlag[0] == "INIT":
                         #get calibration data
-                        self.myProcess.calibrate_data(self.printerFlag[1])
+                        self.myCommand = self.myProcess.calibrate_data(self.printerFlag[1])
                     elif self.printerFlag[0] == "LAYER":
                         #get layer data
                         self.myCommand = self.myProcess.layer_change(self.printerFlag[1]) #GET IMAGE COMMAND
@@ -111,13 +113,17 @@ class main:
         try:
             # Check if the data starts with the JPEG magic number
             if self.myCommand is not None:
-                command_parts = self.myCommand.split()
-                if command_parts[1] == 'image':
+                if data.startswith(b"\x89PNG\r\n\x1a\n"):
+                    command_parts = self.myCommand.split()
                     self.data = client.by2im(data, command_parts[2])
                     print("GOT IMAGE")
 
-                elif command_parts[1] == 'printer':
+                else: 
                     self.data = client.by2com(data)
+                    error_check = self.data.split(' ', 1)
+                    if error_check[0] == 'Error' or error_check[0] == 'STOP':
+                        print(client.by2com(data))
+                        self.reset()
                     print("GOT DATA")
 
         except Exception as error:
@@ -128,8 +134,11 @@ class main:
     def process(self):
         try:
             if self.data is not None:
-                self.myProcess.display_image(self.data)
-                #self.myProcess.LWOI_AMP(self.myData, self.printerFlag)  
+                self.myProcess.LWOI_AMP(self.myData, self.myCommand)
+                try:
+                    self.myProcess.display_image(self.data)# DISPLAY IMAGE
+                except:
+                    pass
             else:
                 pass
         except Exception as error:
@@ -143,6 +152,7 @@ class main:
 
     def debug(self):
         try:
+            self.stop()
             self.start()
 
             if self.myClient.connected:
@@ -159,14 +169,14 @@ class main:
 
             while(self.myClient.running):
                 if self.myClient.connected:
-                    print("FLAG")
+                    #print("FLAG")
                     self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
 
                     self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
 
-                    print("FLAG")
+                    #print("FLAG")
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
-                    print("FLAG")
+                    #print("FLAG")
                     self.myClient.wait() #WAIT FOR PONG(READY FOR RESPONSE)
 
                     self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
@@ -174,7 +184,7 @@ class main:
                     self.process()
         except Exception as error:
             print(f"Error Debugging: {error}")
-            sys.exit(1)
+            #sys.exit(1)
             
 
 
@@ -184,6 +194,7 @@ class main:
 
     def main(self):
         try:
+            self.stop()
             self.start()
         
 
@@ -204,7 +215,7 @@ class main:
 
         except Exception as error:
             print(error)
-            sys.exit(1)
+            #sys.exit(1)
 
 
 #MAIN

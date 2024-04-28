@@ -46,7 +46,6 @@ class CommunicationClient:
     def close_connection(self):
         """Close the connection with the server."""
         if self.connected:
-            self.send(b'quit')
             self.server_socket.close()
             print("Connection closed")
 
@@ -59,7 +58,7 @@ class CommunicationClient:
                 if data is not None:
                     self.server_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.server_socket.sendall(data)
-                    print("sent: " + str(data))
+                    #print("sent: " + str(data))
                 else:
                     print("BAD")
                     pass
@@ -153,7 +152,7 @@ class CommunicationClient:
             while(self.timer):
                 self.checkStatus()
                 #print("WAITING")
-                print(self.status)
+                #print(self.status)
 
             #self.server_socket.settimeout(0.2)
 

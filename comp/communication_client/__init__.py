@@ -78,7 +78,7 @@ def by2im(data, type):
             return None
         else:
             if type == "therm1" or type == "therm2":
-                data = cv2.imdecode(np.frombuffer(data, np.uint16), cv2.IMREAD_UNCHANGED)
+                data = cv2.imdecode(np.frombuffer(data, np.uint8),  cv2.IMREAD_UNCHANGED)
                 return data
             else:
                 data = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
