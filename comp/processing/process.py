@@ -151,7 +151,55 @@ class ImageProcess:
     def findObject(self):
         try:
             self.mod = self.plate[self.layer].get("image").copy()
-            self.build.append(self.mod.copy())#Copy a good plate image to array for storage
+            cv2.normalize(self.mod, self.mod, 0, 255, cv2.NORM_MINMAX)
+            self.mod = np.uint8(self.mod)
+            self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
+            self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
+
+            #sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            #sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
+
+            thresh = cv2.threshold(self.mod, 50, 150, cv2.THRESH_BINARY_INV)[1]
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+            close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+            cnts = cv2.findContours(close, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+            #cv2.imshow('sharpen', self.mod)
+            #cv2.imshow('close', close)
+            #cv2.imshow('thresh', thresh)
+            #cv2.waitKey(0)
+            #print(cnts)
+
+            min_area = 100
+            max_area = 1000
+
+            for c in cnts:
+                area = int(cv2.contourArea(c))
+                #print(area)
+                if area > min_area and area < max_area:
+                    x,y,w,h = cv2.boundingRect(c)
+
+                    self.mod = self.master[self.layer].copy()
+                    self.mod = self.mod[self.plate[process.layer].get("y") + y:self.plate[process.layer].get("y") + y+h, self.plate[process.layer].get("x") + x:self.plate[process.layer].get("x") + x+w]
+
+                    self.build.append({ #Copy a good plate image to array for storage
+                    "image": self.mod.copy(),
+                    "x": x,
+                    "y": y,
+                    "w": w,
+                    "h": h
+                })
+                    return
+
+            self.build.append({ #Copy a good plate image to array for storage
+            "image": self.master[self.layer].copy(),
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+            })
 
         except Exception as error:
             pass
@@ -217,9 +265,9 @@ if __name__ == "__main__":
 
     current_dir = os.getcwd()
     relative_folder_path = "test_images"
-    image_filename = "60deg_bed2.png"
-    #image_filename = "cold_object2.png"
-    #image_filename = "residual2.png"
+    image_filename = "60deg_bed1.png"
+    image_filename = "cold_object1.png"
+    #image_filename = "residual1.png"
     image_path = os.path.join(current_dir, relative_folder_path, image_filename)
     image = cv2.imread(image_path)
 
@@ -235,11 +283,16 @@ if __name__ == "__main__":
     process.LWOI_AMP(image)
     mod = process.master[process.layer].copy()
     cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
-    cv2.imshow("Cropped", mod)
+    cv2.rectangle(mod, (process.plate[process.layer].get("x") + process.build[process.layer].get("x"), process.plate[process.layer].get("y") + process.build[process.layer].get("y")), (process.build[process.layer].get("x") + process.plate[process.layer].get("x") + process.build[process.layer].get("w"), process.build[process.layer].get("y") + process.plate[process.layer].get("y") + process.build[process.layer].get("h")), (36,255,12), 2)
+    cv2.imshow("RGB", mod)
     cv2.waitKey(0)
 
     mod = process.plate[process.layer].get("image").copy()
-    cv2.imshow("Cropped", mod)
+    cv2.imshow("RGB", mod)
+    cv2.waitKey(0)
+
+    mod = process.build[process.layer].get("image").copy()
+    cv2.imshow("RGB", mod)
     cv2.waitKey(0)
 
 
