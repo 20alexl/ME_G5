@@ -134,7 +134,7 @@ class main:
     def process(self):
         try:
             if self.data is not None:
-                self.myProcess.LWOI_AMP(self.myData, self.myCommand)
+                self.myCommand = self.myProcess.LWOI_AMP(self.myData)
                 try:
                     self.myProcess.display_image(self.data)# DISPLAY IMAGE
                 except:

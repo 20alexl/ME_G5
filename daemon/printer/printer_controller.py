@@ -27,7 +27,7 @@ class PrinterCommunication():
         self.paused = False
         self.gcodeTail = "\r\n"
         self.connect()
-        self.setCommands = commands.Commands(self)
+        self.setCommands = commands.Commands(self.serial_connection)
 
     def connect(self):
         """
@@ -85,6 +85,8 @@ class PrinterCommunication():
                 self.cmd = self.cmd.strip('\r\n')
                 self.cmd = self.cmd.strip(';')
                 self.cmd = self.cmd.strip('//echo:')
+                self.cmd = self.cmd.strip('ok ')
+
             except:
                 pass
 

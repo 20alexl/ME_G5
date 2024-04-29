@@ -60,7 +60,6 @@ class CommunicationClient:
                     self.server_socket.sendall(data)
                     #print("sent: " + str(data))
                 else:
-                    print("BAD")
                     pass
         except socket.error as error:
             raise RuntimeError(f"Error sending data: {error}")

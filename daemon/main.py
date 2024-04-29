@@ -118,7 +118,7 @@ class main:
     #PROCESS COMMANDS    
     def process(self, command):
         try:
-            if command is None:     return None
+            if command is None:     return
             self.myCommand = command
             command_parts = self.myCommand.split()
 
@@ -153,7 +153,7 @@ class main:
                         self.myData = self.myPrinter.setCommands.get_temperatures()
                     elif command_parts[2] == 'state':
                         #Implement logic to get state
-                        self.myData = self.myPrinter.setCommands.get_printer_state
+                        self.myData = self.myPrinter.setCommands.get_printer_state()
                     elif command_parts[2] == 'flow':
                         #Implement logic to get flow rate
                         self.myData = self.myPrinter.setCommands.get_flow_rate()

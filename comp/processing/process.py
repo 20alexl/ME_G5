@@ -3,8 +3,10 @@
 # Code for controlling the image processing
 import cv2
 import numpy as np
+import sys
+import os
 
-from . import process_commands as commands
+#from . import process_commands as commands
 
 class ImageProcess:
     def __init__(self):
@@ -12,10 +14,12 @@ class ImageProcess:
         self.printerFlag = str
         self.runnning = bool(True)
 
-        self.DArray = []
+        self.master = []
+        self.plate = []
+        self.build = []
         self.mod = None
 
-        self.layer = int(0)
+        self.layer = int
         self.layerHeight = int
         self.layerMax = int
 
@@ -32,8 +36,7 @@ class ImageProcess:
         self.CalTemp = int
         self.CalBed = int
         
-        self.setCommands = commands.Commands()
-
+        #self.setCommands = commands.Commands()
 
     def calibrate_data(self, init):
         try:
@@ -69,7 +72,7 @@ class ImageProcess:
                 if init_split[0] == 'LAYER_COUNT':
                     self.layerMax = (init_split[1])
 
-            return self.setCommands.get_temperatures()
+            #return self.setCommands.get_temperatures()
 
         except Exception as error:
             raise RuntimeError(f"Error calibrate_data: {error}")
@@ -79,37 +82,103 @@ class ImageProcess:
     def layer_change(self, layer):
         try:
             self.layer = layer
-            return self.setCommands.get_image("therm1")
+            #return self.setCommands.get_image("therm1")
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
         #READ LAYER CHANGE
 
+
     def canny(self):
         try:
-            self.mod = self.DArray[self.layer].copy()
             edges = cv2.Canny(self.mod, 100, 255)
             indices = np.where(edges != [0])
             coordinates = zip(indices[0], indices[1])
+            cv2.imshow("Theraml", edges)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
             return coordinates
         except Exception as error:
             pass
 
+
     def findBed(self):
         try:
-            self.mod = self.DArray[self.layer].copy()
-            plate = self.canny()
+            self.mod = self.master[self.layer].copy()
+            cv2.normalize(self.mod, self.mod, 0, 255, cv2.NORM_MINMAX)
+            self.mod = np.uint8(self.mod)
+            self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
+            self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
+
+            sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
+
+            thresh = cv2.threshold(sharpen, 120, 200, cv2.THRESH_BINARY)[1]
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+            close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+            cnts = cv2.findContours(close, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cnts = cnts[0] if len(cnts) == 2 else cnts[1]
+
+            #cv2.imshow('sharpen', sharpen)
+            #cv2.imshow('close', close)
+            #cv2.imshow('thresh', thresh)
+            #cv2.waitKey(0)
+            #print(cnts)
+
+            min_area = 8000
+            max_area = 11000
+
+            for c in cnts:
+                area = int(cv2.contourArea(c))
+                #print(area)
+                if area > min_area and area < max_area:
+                    x,y,w,h = cv2.boundingRect(c)
+
+                    self.mod = self.master[self.layer].copy()
+                    self.mod = self.mod[y:y+h, x:x+w]
+
+                    self.plate.append({ #Copy a good plate image to array for storage
+                    "image": self.mod.copy(),
+                    "x": x,
+                    "y": y,
+                    "w": w,
+                    "h": h
+                })
+
         except Exception as error:
             pass
 
-    def LWOI_AMP(self, image, cmd):
+    def findObject(self):
         try:
-            if self.layer == 0:
-                cmd_split = cmd.split(" ")
-                calib = [float(cmd_split[0]), float(cmd_split[1])]
-                self.CalBed = calib[0] #BED TEMP
-                self.CalNozzle = calib[1] #NOZZLE TEMP
-            self.DArray[self.layer] = image.copy()
-            self.findBed()
+            self.mod = self.plate[self.layer].get("image").copy()
+            self.build.append(self.mod.copy())#Copy a good plate image to array for storage
+
+        except Exception as error:
+            pass
+
+    def LWOI_AMP(self, data):
+        try:
+            if self.layer is None:
+                cmd_split = data.split("/")
+                CalNoz = cmd_split[1].split(' ', 1) #BED TEMP
+                self.CalBed = CalBed[0]
+                CalBed = cmd_split[2].split(' ', 1) #Nozzel TEMP
+                self.CalNozzle = CalNoz[0]
+                return None
+            else:
+                image = cv2.medianBlur(data, 5)#used to restore lost image date due to bad frame rate
+                height, width = image.shape[:2]
+
+                top = 1
+                bottom = height - 1
+                left = 1
+                right = width - 1
+                image = image[top:bottom, left:right] #Crop image border due to bad framerate(easiest solution)
+
+                self.master.append(image.copy())#Copy a good image to array for storage
+
+                self.findBed()
+                self.findObject()
 
 
         except Exception as error:
@@ -121,21 +190,11 @@ class ImageProcess:
         #SET BED TEMP TO MODEL TEMP OR NEAR TO ALLOW MORE EVEN COOLING
 
 
-    def display_image(self, image):
+    def display_image(self):
         try:
+            image = self.master[self.layer].copy()
             if image is not None:
                 if image.ndim == 2:
-                    image = image.copy()
-                    image = cv2.medianBlur(image, 5)#used to restore lost image date due to bad frame rate
-
-                    height, width = image.shape[:2]
-
-                    top = 1
-                    bottom = height - 1
-                    left = 1
-                    right = width - 1
-                    image = image[top:bottom, left:right] #Crop image border due to bad framerate(easiest solution)
-
                     cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
                     image = np.uint8(image)
                     image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
@@ -154,16 +213,45 @@ class ImageProcess:
 
 if __name__ == "__main__":
     process = ImageProcess()
-    
-    data = 'INIT FLAVOR:Marlin TIME:2019 Filament used: 1.07056m Layer height: 0.2 MINX:90.105 MINY:80.942 MINZ:0.2 MAXX:128.453 MAXY:137.514 MAXZ:26.4 TARGET_MACHINE.NAME:Creality Ender-3 S1 Pr Generated with Cura_SteamEngine 5.6.0  Ender 3 S1 Pro Start G-cod  M413 S0 ; Disable power loss recovery  Prep surfaces before auto home for better accuracy X:-5.00 Y:-5.00 Z:5.00 E:0.00 Count X:-400 Y:-400 Z:2000 LAYER_COUNT:132'
-    process.calibrate_data(data)
-    print(process.E)
-    print(process.layerHeight)
-    print(process.minX)
-    print(process.minY)
-    print(process.minZ)
-    print(process.maxX)
-    print(process.maxY)
-    print(process.maxZ)
-    print(process.layerMax)
+    process.layer = 0
+
+    current_dir = os.getcwd()
+    relative_folder_path = "test_images"
+    image_filename = "60deg_bed2.png"
+    #image_filename = "cold_object2.png"
+    #image_filename = "residual2.png"
+    image_path = os.path.join(current_dir, relative_folder_path, image_filename)
+    image = cv2.imread(image_path)
+
+    if image is not None:
+        print("Image was successfully read.")
+        # Display the image
+        cv2.imshow("Image", image)
+        cv2.waitKey(1)
+        cv2.destroyAllWindows()
+    else:
+        print("Failed to read the image.")
+
+    process.LWOI_AMP(image)
+    mod = process.master[process.layer].copy()
+    cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
+    cv2.imshow("Cropped", mod)
+    cv2.waitKey(0)
+
+    mod = process.plate[process.layer].get("image").copy()
+    cv2.imshow("Cropped", mod)
+    cv2.waitKey(0)
+
+
+    # data = 'INIT FLAVOR:Marlin TIME:2019 Filament used: 1.07056m Layer height: 0.2 MINX:90.105 MINY:80.942 MINZ:0.2 MAXX:128.453 MAXY:137.514 MAXZ:26.4 TARGET_MACHINE.NAME:Creality Ender-3 S1 Pr Generated with Cura_SteamEngine 5.6.0  Ender 3 S1 Pro Start G-cod  M413 S0 ; Disable power loss recovery  Prep surfaces before auto home for better accuracy X:-5.00 Y:-5.00 Z:5.00 E:0.00 Count X:-400 Y:-400 Z:2000 LAYER_COUNT:132'
+    # process.calibrate_data(data)
+    # print(process.E)
+    # print(process.layerHeight)
+    # print(process.minX)
+    # print(process.minY)
+    # print(process.minZ)
+    # print(process.maxX)
+    # print(process.maxY)
+    # print(process.maxZ)
+    # print(process.layerMax)
     
