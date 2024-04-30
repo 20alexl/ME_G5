@@ -196,11 +196,10 @@ class main:
                     self.myData = self.myPrinter.setCommands.set_print_speed(command_parts[3])
                 elif device == 'temp':
                     # Implement logic to set temperature
-                    #if command_parts[2] == 'bed':
-                    #    self.myData = self.myPrinter.setCommands.set_bed_temperature(command_parts[3])
-                    #if command_parts[2] == 'extruder':
-                    #    self.myData = self.myPrinter.setCommands.set_extruder_temperature(command_parts[3])
-                    self.myData = self.myPrinter.setCommands.get_temperatures()
+                    if command_parts[2] == 'bed':
+                        self.myData = self.myPrinter.setCommands.set_bed_temperature(command_parts[3])
+                    if command_parts[2] == 'extruder':
+                        self.myData = self.myPrinter.setCommands.set_extruder_temperature(command_parts[3])
                 elif device == 'pos':
                     # Implement logic to set position
                     self.myData = self.myPrinter.setCommands.move_axis(command_parts[2], command_parts[3])

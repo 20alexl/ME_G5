@@ -7,6 +7,7 @@ Main Controller for Computer(comp)
 import time
 import sys
 import cv2
+import keyboard
 
 #CUSTOME CLASSES
 import processing as processe
@@ -82,7 +83,6 @@ class main:
     #READ FLAGS
     def readFlag(self, flag):
         try:
-            print(flag)
             if flag is None:    return   
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
@@ -97,7 +97,6 @@ class main:
                 if len(self.printerFlag) > 0:
                     if self.printerFlag[0] == "INIT":
                         #get calibration data
-                        print("INIT")
                         self.myCommand = self.myProcess.calibrate_data(self.printerFlag[1])
                     elif self.printerFlag[0] == "LAYER":
                         #get layer data
@@ -233,8 +232,7 @@ class main:
                     self.myClient.PONG() #SEND PONG TO INDICATE PROCESS COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
 
-                key = cv2.waitKey(1)
-                if key == ord('m'):
+                if keyboard.is_pressed('m'):
                     self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
                     self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND

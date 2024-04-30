@@ -6,7 +6,7 @@ import numpy as np
 import sys
 import os
 
-from . import process_commands as commands
+#from . import process_commands as commands
 
 class ImageProcess:
     def __init__(self):
@@ -36,7 +36,7 @@ class ImageProcess:
         self.CalTemp = int
         self.CalBed = int
         
-        self.setCommands = commands.Commands()
+        #self.setCommands = commands.Commands()
 
     def calibrate_data(self, init):
         try:
@@ -50,17 +50,13 @@ class ImageProcess:
                     init[l+1] = init[l+1].strip()
                     init_split[1] = init[l+1].strip('m')
                     self.E = ((init_split[1]))
-                    print("set")
                 if init_split[0] == 'height':
                     init_split[1] = init[l+1].strip()
                     self.layerHeight = (init_split[1])
-                    print("set")
                 if init_split[0] == 'MINX':
                     self.minX = (init_split[1])
-                    print("set")
                 if init_split[0] == 'MINY':
                     self.minY = (init_split[1])
-                    print("set")
                 if init_split[0] == 'MINZ':
                     self.minZ = (init_split[1])
                 if init_split[0] == 'MAXX':
@@ -72,9 +68,7 @@ class ImageProcess:
                 if init_split[0] == 'LAYER_COUNT':
                     self.layerMax = (init_split[1])
 
-            print(self.layerMax)
-
-            return self.setCommands.get_temperatures()
+            #return self.setCommands.get_temperatures()
 
         except Exception as error:
             raise RuntimeError(f"Error calibrate_data: {error}")
@@ -206,11 +200,22 @@ class ImageProcess:
         except Exception as error:
             pass
 
+    def gradient(self):
+        try:
+            self.mod = self.plate[self.layer].get("image").copy()
+            bed = int(np.median(self.mod))
+            print(bed)
+            self.mod = self.build[self.layer].get("image").copy()
+            temp = int(np.mean(self.mod))
+            print(temp)
+            self.temp = bed
+            self.bed = temp
+        except Exception as error:
+            pass
+
     def LWOI_AMP(self, data, type):
         try:
-            #if self.layer == False and type == "temp":
-            if type == "temp":
-                cmd_split = data.split("/")
+            if self.layer is None and type != "image":
                 cmd_split = data.split("/")
                 CalNoz = cmd_split[1].split(' ', 1) #BED TEMP
                 self.CalBed = CalBed[0]
@@ -231,9 +236,11 @@ class ImageProcess:
 
                 self.findBed()
                 self.findObject()
+                temp = self.gradient()
+                #return self.setCommands.set_bed_temperature(temp)
             else:
                 print(data.split())
-
+                return None
 
         except Exception as error:
             raise RuntimeError(f"Error LWOI_AMP: {error}")
@@ -279,9 +286,9 @@ if __name__ == "__main__":
     relative_folder_path = "test_images"
     image_filename = "60deg_bed1.png"
     image_filename = "cold_object1.png"
-    #image_filename = "residual1.png"
+    image_filename = "residual2.png"
     image_path = os.path.join(current_dir, relative_folder_path, image_filename)
-    image = cv2.imread(image_path)
+    image = cv2.imread(image_path, 0)
 
     if image is not None:
         print("Image was successfully read.")
@@ -293,19 +300,20 @@ if __name__ == "__main__":
         print("Failed to read the image.")
 
     process.LWOI_AMP(image, "image")
-    mod = process.master[process.layer].copy()
-    cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
-    cv2.rectangle(mod, (process.plate[process.layer].get("x") + process.build[process.layer].get("x"), process.plate[process.layer].get("y") + process.build[process.layer].get("y")), (process.build[process.layer].get("x") + process.plate[process.layer].get("x") + process.build[process.layer].get("w"), process.build[process.layer].get("y") + process.plate[process.layer].get("y") + process.build[process.layer].get("h")), (36,255,12), 2)
-    cv2.imshow("RGB", mod)
-    cv2.waitKey(0)
+    process.display_image()
+    # mod = process.master[process.layer].copy()
+    # cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
+    # cv2.rectangle(mod, (process.plate[process.layer].get("x") + process.build[process.layer].get("x"), process.plate[process.layer].get("y") + process.build[process.layer].get("y")), (process.build[process.layer].get("x") + process.plate[process.layer].get("x") + process.build[process.layer].get("w"), process.build[process.layer].get("y") + process.plate[process.layer].get("y") + process.build[process.layer].get("h")), (36,255,12), 2)
+    # cv2.imshow("RGB", mod)
+    # cv2.waitKey(0)
 
-    mod = process.plate[process.layer].get("image").copy()
-    cv2.imshow("RGB", mod)
-    cv2.waitKey(0)
+    # mod = process.plate[process.layer].get("image").copy()
+    # cv2.imshow("RGB", mod)
+    # cv2.waitKey(0)
 
-    mod = process.build[process.layer].get("image").copy()
-    cv2.imshow("RGB", mod)
-    cv2.waitKey(0)
+    # mod = process.build[process.layer].get("image").copy()
+    # cv2.imshow("RGB", mod)
+    # cv2.waitKey(0)
 
 
     # data = 'INIT FLAVOR:Marlin TIME:2019 Filament used: 1.07056m Layer height: 0.2 MINX:90.105 MINY:80.942 MINZ:0.2 MAXX:128.453 MAXY:137.514 MAXZ:26.4 TARGET_MACHINE.NAME:Creality Ender-3 S1 Pr Generated with Cura_SteamEngine 5.6.0  Ender 3 S1 Pro Start G-cod  M413 S0 ; Disable power loss recovery  Prep surfaces before auto home for better accuracy X:-5.00 Y:-5.00 Z:5.00 E:0.00 Count X:-400 Y:-400 Z:2000 LAYER_COUNT:132'

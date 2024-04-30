@@ -118,9 +118,9 @@ class CommunicationClient:
                 elif data == 'PING':
                     self.status = 'PONG'
                     return
-                    
+
                 self.timer = True
-                
+
             if self.status == 'PING':
                 self.timer = True
                 data = (self.receive())
@@ -129,20 +129,20 @@ class CommunicationClient:
                 if data == 'PONG':
                     self.timer = False
                     self.status = 'PONG'
-            
+
             if self.status == 'PONG':
                 self.timer = False
                 self.status = 'WAIT'
-            
+
         except Exception as error:
             raise error
-        
+
     def setPING(self):
         self.status = 'PING'
 
     def setPONG(self):
         self.status = 'PONG'
-        
+
     def setWAIT(self):
         self.status = 'WAIT'
 
