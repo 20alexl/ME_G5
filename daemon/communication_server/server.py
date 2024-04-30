@@ -77,6 +77,7 @@ class CommunicationServer:
             if self.connected:
                 self.setPING()
                 if data is not None:
+                    print(data)
                     self.client_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.client_socket.sendall(data)
                 else:
@@ -96,6 +97,7 @@ class CommunicationServer:
                 data = b''
                 while len(data) < length:
                     data += self.client_socket.recv(length - len(data))
+                print(data)
                 return data
 
         except socket.timeout:
@@ -170,11 +172,10 @@ class CommunicationServer:
     #WAIT FOR TIMER
     def wait(self):
         try:
-            self.setWAIT()
             #self.server_socket.settimeout(2)
             self.checkStatus()
             while(self.timer):
-                    self.checkStatus()
+                self.checkStatus()
                 #print("WAITING")
                 #print(self.status)
 

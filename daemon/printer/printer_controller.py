@@ -27,7 +27,7 @@ class PrinterCommunication():
         self.paused = False
         self.gcodeTail = "\r\n"
         self.connect()
-        self.setCommands = commands.Commands(self.serial_connection)
+        self.setCommands = commands.Commands(self)
 
     def connect(self):
         """
@@ -58,10 +58,12 @@ class PrinterCommunication():
         self.cmd = self.serial_connection.readline().decode()
         #print(self.cmd)
         self.parse()
+        if self.cmd_split[0] == 'busy' or self.cmd_split[0] == '':
+            return True
         if self.cmd_split[0] == 'FLAVOR':
             self.printing = True
 
-        return self.cmd
+        return False
 
     def close_connection(self):
         """Close the serial connection to the printer."""
@@ -86,11 +88,10 @@ class PrinterCommunication():
                 self.cmd = self.cmd.strip(';')
                 self.cmd = self.cmd.strip('//echo:')
                 self.cmd = self.cmd.strip('ok ')
+                self.cmd_split = self.cmd.split(':')
 
             except:
                 pass
-
-            self.cmd_split = self.cmd.split(':')
                 #REMOVE THE ; AND SPLIT BY : (LAYER, __)
                 #REMOVE THE // AND SPLIT BY : (ACTION, __) or (FILE, ___)
 
@@ -104,10 +105,10 @@ class PrinterCommunication():
         #Get response from printer
         self.receive_response()
         #Parse response
-        #print(self.cmd_split)
+        print(self.cmd_split)
 
         #If we are not printing, return the status
-        if not self.printing:  
+        if self.printing == False:  
             return None
 
         #Return status
@@ -115,14 +116,14 @@ class PrinterCommunication():
             if self.cmd_split[0] == 'LAYER_COUNT':
                 self.initState = self.initState + " " + (self.cmd).strip(";")
                 self.init = True
-                return {"INIT" + self.initState}
+                return ("INIT" + str(self.initState))
             else:
                 self.initState = self.initState + " " + (self.cmd).strip(";")
                 return None
 
         else: #IF we have started a print
             if self.cmd_split[0] == 'LAYER': #LAYER FLAG
-                return {"LAYER " + self.cmd_split[1]}
+                return ("LAYER " + self.cmd_split[1])
             #elif self.cmd_split[0] == "TIME": #TIME FLAG
                 return {"TIME " + self.cmd_split[1]}
             else:

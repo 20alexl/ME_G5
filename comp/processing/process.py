@@ -6,7 +6,7 @@ import numpy as np
 import sys
 import os
 
-#from . import process_commands as commands
+from . import process_commands as commands
 
 class ImageProcess:
     def __init__(self):
@@ -19,7 +19,7 @@ class ImageProcess:
         self.build = []
         self.mod = None
 
-        self.layer = int
+        self.layer = None
         self.layerHeight = int
         self.layerMax = int
 
@@ -36,7 +36,7 @@ class ImageProcess:
         self.CalTemp = int
         self.CalBed = int
         
-        #self.setCommands = commands.Commands()
+        self.setCommands = commands.Commands()
 
     def calibrate_data(self, init):
         try:
@@ -72,7 +72,9 @@ class ImageProcess:
                 if init_split[0] == 'LAYER_COUNT':
                     self.layerMax = (init_split[1])
 
-            #return self.setCommands.get_temperatures()
+            print(self.layerMax)
+
+            return self.setCommands.get_temperatures()
 
         except Exception as error:
             raise RuntimeError(f"Error calibrate_data: {error}")
@@ -82,7 +84,7 @@ class ImageProcess:
     def layer_change(self, layer):
         try:
             self.layer = layer
-            #return self.setCommands.get_image("therm1")
+            return self.setCommands.get_image("therm1")
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
         #READ LAYER CHANGE
@@ -156,10 +158,10 @@ class ImageProcess:
             self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
             self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
 
-            #sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-            #sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
+            sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
 
-            thresh = cv2.threshold(self.mod, 50, 150, cv2.THRESH_BINARY_INV)[1]
+            thresh = cv2.threshold(sharpen, 50, 150, cv2.THRESH_BINARY_INV)[1]
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
             close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -204,16 +206,18 @@ class ImageProcess:
         except Exception as error:
             pass
 
-    def LWOI_AMP(self, data):
+    def LWOI_AMP(self, data, type):
         try:
-            if self.layer is None:
+            #if self.layer == False and type == "temp":
+            if type == "temp":
+                cmd_split = data.split("/")
                 cmd_split = data.split("/")
                 CalNoz = cmd_split[1].split(' ', 1) #BED TEMP
                 self.CalBed = CalBed[0]
                 CalBed = cmd_split[2].split(' ', 1) #Nozzel TEMP
                 self.CalNozzle = CalNoz[0]
                 return None
-            else:
+            elif type == "image":
                 image = cv2.medianBlur(data, 5)#used to restore lost image date due to bad frame rate
                 height, width = image.shape[:2]
 
@@ -227,6 +231,8 @@ class ImageProcess:
 
                 self.findBed()
                 self.findObject()
+            else:
+                print(data.split())
 
 
         except Exception as error:
@@ -240,13 +246,19 @@ class ImageProcess:
 
     def display_image(self):
         try:
+            print(self.layer)
             image = self.master[self.layer].copy()
             if image is not None:
                 if image.ndim == 2:
                     cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
                     image = np.uint8(image)
                     image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
-                    cv2.imshow("Theraml", image)
+                    try:
+                        cv2.rectangle(image, (self.plate[self.layer].get("x"), self.plate[self.layer].get("y")), (self.plate[self.layer].get("x") + self.plate[self.layer].get("w"), self.plate[self.layer].get("y") + self.plate[self.layer].get("h")), (36,255,12), 2)
+                        cv2.rectangle(image, (self.plate[self.layer].get("x") + self.build[self.layer].get("x"), self.plate[self.layer].get("y") + self.build[self.layer].get("y")), (self.build[self.layer].get("x") + self.plate[self.layer].get("x") + self.build[self.layer].get("w"), self.build[self.layer].get("y") + self.plate[self.layer].get("y") + self.build[self.layer].get("h")), (36,255,12), 2)
+                    except Exception as error:
+                        pass
+                    cv2.imshow("Thermal", image)
                     cv2.waitKey(0)
                     cv2.destroyAllWindows()
                 else:
@@ -280,7 +292,7 @@ if __name__ == "__main__":
     else:
         print("Failed to read the image.")
 
-    process.LWOI_AMP(image)
+    process.LWOI_AMP(image, "image")
     mod = process.master[process.layer].copy()
     cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
     cv2.rectangle(mod, (process.plate[process.layer].get("x") + process.build[process.layer].get("x"), process.plate[process.layer].get("y") + process.build[process.layer].get("y")), (process.build[process.layer].get("x") + process.plate[process.layer].get("x") + process.build[process.layer].get("w"), process.build[process.layer].get("y") + process.plate[process.layer].get("y") + process.build[process.layer].get("h")), (36,255,12), 2)

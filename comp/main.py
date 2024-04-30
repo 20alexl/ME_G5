@@ -28,7 +28,7 @@ class main:
         self.myProcess = processe.process.ImageProcess()
 
         self.myCommand = str
-        self.myData = bytes
+        self.data = bytes
 
         self.initPassed = bool(False)
         self.initStatus = "404"
@@ -82,9 +82,11 @@ class main:
     #READ FLAGS
     def readFlag(self, flag):
         try:
+            print(flag)
             if flag is None:    return   
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
+            print(self.printerFlag)
             if self.printerFlag[0] == 'RESET':
                 self.myClient.send("RESET")
                 self.reset()
@@ -95,6 +97,7 @@ class main:
                 if len(self.printerFlag) > 0:
                     if self.printerFlag[0] == "INIT":
                         #get calibration data
+                        print("INIT")
                         self.myCommand = self.myProcess.calibrate_data(self.printerFlag[1])
                     elif self.printerFlag[0] == "LAYER":
                         #get layer data
@@ -134,10 +137,11 @@ class main:
     def process(self):
         try:
             if self.data is not None:
-                self.myCommand = self.myProcess.LWOI_AMP(self.myData)
+                command_parts = self.myCommand.split()
+                self.myCommand = self.myProcess.LWOI_AMP(self.data, command_parts[1])
                 try:
-                    self.myProcess.display_image(self.data)# DISPLAY IMAGE
-                except:
+                    self.myProcess.display_image()# DISPLAY IMAGE
+                except Exception as error:
                     pass
             else:
                 pass
@@ -166,8 +170,9 @@ class main:
                 print("Passed!" + self.initStatus + " : " + self.server_init_status)
             else:
                 print("Failed!" + self.initStatus + " : " + self.server_init_status)
-
+            self.myProcess.layer=0
             while(self.myClient.running):
+
                 if self.myClient.connected:
                     #print("FLAG")
                     self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
@@ -182,7 +187,10 @@ class main:
                     self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
                     self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
                     self.process()
+                    self.myProcess.layer = self.myProcess.layer + 1
         except Exception as error:
+            self.myClient.PING()
+            self.myClient.send(b"RESET")
             print(f"Error Debugging: {error}")
             #sys.exit(1)
             
@@ -196,11 +204,23 @@ class main:
         try:
             self.stop()
             self.start()
-        
+
+            if self.myClient.connected:
+                self.init_test() #TEST ALL CONNTECTED COMPONENTS
+            print("Tested!")
+            if self.initPassed:#IF ALL TESTS PASS
+                self.myClient.wait()#WAIT FOR PING
+                self.server_init_status = (client.by2com(self.myClient.receive())) #RECIEVE TEST INIT STATUS
+                self.myClient.PONG() #SEND PONG ?
+            if self.initStatus == self.server_init_status:
+                print("Passed!" + self.initStatus + " : " + self.server_init_status)
+            else:
+                print("Failed!" + self.initStatus + " : " + self.server_init_status)
 
             while(self.myClient.connected):
                 self.myClient.checkStatus() #START WIAIT FOR SOMETHING FROM SERVER (USUALLY "PING")   
                 if self.myClient.status != 'WAIT':#IF PING RECIEVED:(MEANING FLAG WILL BE SENT)
+                    print("PINGGED")
                     self.readFlag(client.by2com(self.myClient.receive())) #PROCESS FLAG:(USUALLY LAYER OR START/STOP) RETURNS COMMAND:(USUALLY GET)
 
                     self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
@@ -213,9 +233,23 @@ class main:
                     self.myClient.PONG() #SEND PONG TO INDICATE PROCESS COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
 
+                key = cv2.waitKey(1)
+                if key == ord('m'):
+                    self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
+                    self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
+                    self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
+                    #print("FLAG")
+                    self.myClient.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+
+                    self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
+                    self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
+                    self.process()
+
         except Exception as error:
-            print(error)
-            #sys.exit(1)
+            self.myClient.PING()
+            self.myClient.send(b"RESET")
+            print(f"Error Main: {error}")
+            sys.exit(1)
 
 
 #MAIN
@@ -223,9 +257,9 @@ if __name__ == "__main__":
     """
     MAIN INITIALIZATION
     """
-    DEBUGGING = True
-    #host = "10.0.2.15"  # Raspberry Pi IP address
-    host = "192.168.10.191"  # Raspberry Pi IP address
+    DEBUGGING = False
+    host = "10.0.2.15"  # Raspberry Pi IP address
+    #host = "192.168.10.191"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
     
     myMain = main(host, port)

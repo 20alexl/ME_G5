@@ -50,7 +50,7 @@ class main:
 
         self.initPassed = False
         self.initStatus = "404"
-        self.printerFlag = False
+        self.printerFlag = None
         self.pinged = False
 
 
@@ -73,7 +73,7 @@ class main:
                 while self.myServer.connected:
                     self.myServer.stop_server()
                 if self.myPrinter is not None:
-                    self.myPrinter.disconnect()
+                    self.myPrinter.close_connection()
                 if self.cam1 is not None:
                     self.cam1.release()
                 if self.therm1 is not None:
@@ -159,6 +159,7 @@ class main:
                         self.myData = self.myPrinter.setCommands.get_flow_rate()
                     else:
                         raise RuntimeError(f"Invalid Printer Command")
+                    ret = False
 
 
                 elif device == 'image':
@@ -179,8 +180,9 @@ class main:
                         self.myServer.PONG()
                         self.myServer.send(server.im2by(self.myData))
                         self.myServer.wait()
-                    elif self.myData.dtype == 'str':
+                    elif not ret:
                         self.myServer.PONG()
+                        print(server.com2by(self.myData))
                         self.myServer.send(server.com2by(self.myData))
                         self.myServer.wait()
                     else:
@@ -194,13 +196,14 @@ class main:
                     self.myData = self.myPrinter.setCommands.set_print_speed(command_parts[3])
                 elif device == 'temp':
                     # Implement logic to set temperature
-                    if command_parts[2] == 'bed':
-                        self.myData = self.myPrinter.setCommands.set_bed_temperature(command_parts[3])
-                    if command_parts[2] == 'extruder':
-                        self.myData = self.myPrinter.setCommands.set_extruder_temperature(command_parts[3])
+                    #if command_parts[2] == 'bed':
+                    #    self.myData = self.myPrinter.setCommands.set_bed_temperature(command_parts[3])
+                    #if command_parts[2] == 'extruder':
+                    #    self.myData = self.myPrinter.setCommands.set_extruder_temperature(command_parts[3])
+                    self.myData = self.myPrinter.setCommands.get_temperatures()
                 elif device == 'pos':
                     # Implement logic to set position
-                    self.myData = self.myPrinter.setCommands.move_axis(command_parts[3], command_parts[4])
+                    self.myData = self.myPrinter.setCommands.move_axis(command_parts[2], command_parts[3])
                 elif device == 'home':
                     # Implement logic to home
                     self.myData = self.myPrinter.setCommands.home()
@@ -209,12 +212,13 @@ class main:
                     self.myData = self.myPrinter.setCommands.park()
                 elif device == 'flow':
                     # Implement logic to set flow
-                    self.myData = self.myPrinter.setCommands.set_flow_rate(command_parts[3])
+                    self.myData = self.myPrinter.setCommands.set_flow_rate(command_parts[2])
                 else:
                     raise RuntimeError(f"Invalid device")
                 
                 if self.myData is not None:  # Check if image data is not None
                     self.myServer.PONG()
+                    print(server.com2by(self.myData))
                     self.myServer.send(server.com2by(self.myData))
                 else:
                     raise RuntimeError(f"Error: Failed to capture data")
@@ -243,9 +247,11 @@ class main:
                 self.myServer.PING()#SEND PING(INIT PING)
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
                 print("Passed!" + self.initStatus)
+                self.myServer.setWAIT()
                 self.myServer.wait()
 
             while self.myServer.connected:
+                self.myServer.setWAIT()
                 self.myServer.wait()
                 if self.myServer.status != 'WAIT':
                     print("PINGGED")
@@ -276,18 +282,19 @@ class main:
             if self.myServer.connected:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
-
             if self.initPassed:#IF ALL TESTS PASS
                 self.myServer.PING()#SEND PING(INIT PING)
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
-                self.myServer.wait()#WAIT FOR PONG
                 print("Passed!" + self.initStatus)
+                self.myServer.wait()
+                self.myServer.setWAIT()
 
             while(self.myServer.connected):
                 self.printerFlag = self.myPrinter.get_status() #CHECK FOR SET FLAGS
                 self.myServer.checkStatus() #START WIAIT FOR SOMETHING FROM HOST (USUALLY "PING")
 # 
                 if self.printerFlag is not None:
+                    print("Printer Flag")
                     self.myServer.PING() #SEND PING TO INDICATE FLAG | TIMER STATE IS PING
                     self.myServer.send(server.com2by(self.printerFlag)) #SEND FLAG
                     self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
@@ -298,16 +305,19 @@ class main:
                     self.printerFlag = None
 
                 elif self.myServer.status != 'WAIT':
+                    print("PING/PONG Flag")
                     self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
                     self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
                     self.myServer.send(server.com2by(self.myData)) #SEND DATA
 
                 else:
-                    pass
+                    self.myServer.setWAIT()
 
         except Exception as error:
             print(error)
-            #sys.exit(1)
+            self.myServer.PONG()
+            self.myServer.send(server.com2by(f"Error: {error}"))
+            self.reset()
     
 
 #MAIN
@@ -316,17 +326,17 @@ if __name__ == "__main__":
     MAIN INITIALIZATION
     """
 
-    DEBUGGING = True
-    #host = "10.0.2.15"  # Raspberry Pi IP address
-    host = "192.168.10.191"  # Raspberry Pi IP address
+    DEBUGGING = False
+    host = "10.0.2.15"  # Raspberry Pi IP address
+    #host = "192.168.10.191"  # Raspberry Pi IP address
     port = 12345  # Chosen port number
-    cam1Port = 0
-    therm1Port = 2
+    cam1Port = None
+    therm1Port = 0
     therm2Port = None
     printerPort = '/dev/ttyUSB0'
 
     while True:
-        myMain = main(host, port, None, cam1Port, therm1Port, therm2Port)
+        myMain = main(host, port, printerPort, cam1Port, therm1Port, therm2Port)
 
         if DEBUGGING:
             myMain.debug() #DEBUG

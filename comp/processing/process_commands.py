@@ -34,7 +34,7 @@ class Commands:
         """
         return ("STOP")
 
-    def home(self, axis):
+    def home(self):
         """
         Home the specified axis.
         Args:
