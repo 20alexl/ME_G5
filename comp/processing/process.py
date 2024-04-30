@@ -49,24 +49,24 @@ class ImageProcess:
                 if init_split[0] == 'used':
                     init[l+1] = init[l+1].strip()
                     init_split[1] = init[l+1].strip('m')
-                    self.E = ((init_split[1]))
+                    self.E = float((init_split[1]))
                 if init_split[0] == 'height':
                     init_split[1] = init[l+1].strip()
-                    self.layerHeight = (init_split[1])
+                    self.layerHeight = float(init_split[1])
                 if init_split[0] == 'MINX':
-                    self.minX = (init_split[1])
+                    self.minX = int(init_split[1])
                 if init_split[0] == 'MINY':
-                    self.minY = (init_split[1])
+                    self.minY = int(init_split[1])
                 if init_split[0] == 'MINZ':
-                    self.minZ = (init_split[1])
+                    self.minZ = float(init_split[1])
                 if init_split[0] == 'MAXX':
-                    self.maxX = (init_split[1])
+                    self.maxX = int(init_split[1])
                 if init_split[0] == 'MAXY':
-                    self.maxY = (init_split[1])
+                    self.maxY = int(init_split[1])
                 if init_split[0] == 'MAXZ':
-                    self.maxZ = (init_split[1])
+                    self.maxZ = float(init_split[1])
                 if init_split[0] == 'LAYER_COUNT':
-                    self.layerMax = (init_split[1])
+                    self.layerMax = int(init_split[1])
 
             #return self.setCommands.get_temperatures()
 
@@ -102,13 +102,13 @@ class ImageProcess:
             self.mod = self.master[self.layer].copy()
             cv2.normalize(self.mod, self.mod, 0, 255, cv2.NORM_MINMAX)
             self.mod = np.uint8(self.mod)
-            self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
-            self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
+            #self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
+            #self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
 
-            sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-            sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
+            #sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            #sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
 
-            thresh = cv2.threshold(sharpen, 120, 200, cv2.THRESH_BINARY)[1]
+            thresh = cv2.threshold(self.mod, 125, 255, cv2.THRESH_BINARY)[1]
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
             close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -149,13 +149,14 @@ class ImageProcess:
             self.mod = self.plate[self.layer].get("image").copy()
             cv2.normalize(self.mod, self.mod, 0, 255, cv2.NORM_MINMAX)
             self.mod = np.uint8(self.mod)
+            #self.mod = cv2.blur(self.mod,(5,5),0)
             self.mod = cv2.applyColorMap(self.mod, cv2.COLORMAP_INFERNO)
             self.mod = cv2.cvtColor(self.mod, cv2.COLOR_BGR2GRAY)
 
-            sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-            sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
+            #sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+            #sharpen = cv2.filter2D(self.mod, -1, sharpen_kernel)
 
-            thresh = cv2.threshold(sharpen, 50, 150, cv2.THRESH_BINARY_INV)[1]
+            thresh = cv2.threshold(self.mod, 145, 255, cv2.THRESH_BINARY)[1]
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
             close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -163,17 +164,20 @@ class ImageProcess:
             cnts = cnts[0] if len(cnts) == 2 else cnts[1]
 
             #cv2.imshow('sharpen', self.mod)
-            #cv2.imshow('close', close)
+            cv2.imshow('close', close)
             #cv2.imshow('thresh', thresh)
             #cv2.waitKey(0)
             #print(cnts)
 
-            min_area = 100
-            max_area = 1000
+            myArea = (self.maxX - self.minX)* (self.maxY - self.minY)
+            min_area = (myArea/40) - (myArea/80)
+            max_area = (myArea/40) + (myArea/80)
+            print(min_area)
+            print(max_area)
 
             for c in cnts:
                 area = int(cv2.contourArea(c))
-                #print(area)
+                print(area)
                 if area > min_area and area < max_area:
                     x,y,w,h = cv2.boundingRect(c)
 
@@ -203,10 +207,12 @@ class ImageProcess:
     def gradient(self):
         try:
             self.mod = self.plate[self.layer].get("image").copy()
-            bed = int(np.median(self.mod))
+            temp_celsius = ((self.mod / 100)- 273.15)
+            bed = int(np.mean(temp_celsius))
             print(bed)
             self.mod = self.build[self.layer].get("image").copy()
-            temp = int(np.mean(self.mod))
+            temp_celsius = ((self.mod / 100)- 273.15)
+            temp = int(np.mean(temp_celsius))
             print(temp)
             self.temp = bed
             self.bed = temp
@@ -224,6 +230,8 @@ class ImageProcess:
                 return None
             elif type == "image":
                 image = cv2.medianBlur(data, 5)#used to restore lost image date due to bad frame rate
+                sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+                image = cv2.filter2D(image, -1, sharpen_kernel)
                 height, width = image.shape[:2]
 
                 top = 1
@@ -281,14 +289,20 @@ class ImageProcess:
 if __name__ == "__main__":
     process = ImageProcess()
     process.layer = 0
+    process.minX = 92
+    process.minY = 91
+    process.maxX = 128
+    process.maxY = 138
 
     current_dir = os.getcwd()
     relative_folder_path = "test_images"
     image_filename = "60deg_bed1.png"
     image_filename = "cold_object1.png"
     image_filename = "residual2.png"
+    image_filename = "Layer10.png"
     image_path = os.path.join(current_dir, relative_folder_path, image_filename)
-    image = cv2.imread(image_path, 0)
+    image = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH)
+    print(image.dtype)
 
     if image is not None:
         print("Image was successfully read.")
