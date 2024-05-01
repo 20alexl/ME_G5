@@ -135,6 +135,13 @@ class main:
                 self.stop()
                 sys.exit(1) 
 
+            if command_type == 'send':
+                self.myData = self.myPrinter.send_command(str(command_parts[1]))
+                self.myServer.PONG()
+                print(server.com2by(self.myData))
+                self.myServer.send(server.com2by(self.myData))
+                return
+
             device = command_parts[1]
             if command_type == 'get':
 
@@ -163,6 +170,7 @@ class main:
 
 
                 elif device == 'image':
+                    self.myPrinter.setCommands.park()
                     if command_parts[2] == 'cam1':
                         ret, self.myData = self.cam1.capture_frame()
                     elif command_parts[2] == 'therm1':
@@ -302,12 +310,14 @@ class main:
                     self.process(server.by2com(self.myServer.receive())) #PROCESS SECOND COMMAND (USUALY A SET COMMAND)
                     #NO PING PONG ON SET COMMANDS
                     self.printerFlag = None
+                    self.myServer.setWAIT()
 
                 elif self.myServer.status != 'WAIT':
                     print("PING/PONG Flag")
                     self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
                     self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
                     self.myServer.send(server.com2by(self.myData)) #SEND DATA
+                    self.myServer.setWAIT()
 
                 else:
                     self.myServer.setWAIT()

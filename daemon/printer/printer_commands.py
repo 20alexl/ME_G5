@@ -213,7 +213,7 @@ class Commands:
         """
         Pause and park the printer. In halt state
         """
-        self.communication.send_command("M125")
+        self.communication.send_command("M25")
         while self.communication.receive_response():
             pass
         return self.communication.cmd
@@ -223,6 +223,9 @@ class Commands:
         Clear the halt state of the printer.
         """
         self.communication.send_command("M108")
+        while self.communication.receive_response():
+            pass
+        self.communication.send_command("M876 S1")
         while self.communication.receive_response():
             pass
         return self.communication.cmd

@@ -58,8 +58,11 @@ class PrinterCommunication():
         self.cmd = self.serial_connection.readline().decode()
         #print(self.cmd)
         self.parse()
-        if self.cmd_split[0] == 'busy' or self.cmd_split[0] == '':
-            return True
+        if self.cmd_split[0] == 'busy' or self.cmd_split[0] == '' or self.cmd_split[0] == 'action':
+            if self.cmd_split[1] == 'show_prompt':
+                return False
+            else:
+                return True
         if self.cmd_split[0] == 'FLAVOR':
             self.printing = True
 
@@ -87,6 +90,7 @@ class PrinterCommunication():
                 self.cmd = self.cmd.strip('\r\n')
                 self.cmd = self.cmd.strip(';')
                 self.cmd = self.cmd.strip('//echo:')
+                self.cmd = self.cmd.strip('//')
                 self.cmd = self.cmd.strip('ok ')
                 self.cmd_split = self.cmd.split(':')
 

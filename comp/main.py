@@ -136,8 +136,12 @@ class main:
     def process(self):
         try:
             if self.data is not None:
-                command_parts = self.myCommand.split()
-                self.myCommand = self.myProcess.LWOI_AMP(self.data, command_parts[1])
+                if self.myProcess.layer == self.myProcess.layerMax:
+                    self.myCommand = "RESET"
+                    self.myClient.connected == False
+                else:
+                    command_parts = self.myCommand.split()
+                    self.myCommand = self.myProcess.LWOI_AMP(self.data, command_parts[1])
                 try:
                     self.myProcess.display_image()# DISPLAY IMAGE
                 except Exception as error:
@@ -242,6 +246,8 @@ class main:
                     self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
                     self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
                     self.process()
+
+            self.myProcess.save_run()
 
         except Exception as error:
             self.myClient.PING()
