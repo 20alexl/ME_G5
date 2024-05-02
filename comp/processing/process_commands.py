@@ -40,7 +40,7 @@ class Commands:
         Args:
             axis (str): The axis to home (e.g., 'X', 'Y', 'Z').
         """
-        return ("set printer home")
+        return ("set home")
 
     def move_axis(self, axis, distance):
         """
@@ -49,7 +49,7 @@ class Commands:
             axis (str): The axis to move (e.g., 'X', 'Y', 'Z').
             distance (float): The distance to move the axis.
         """
-        return ("set printer axis " + {axis} + " " + {distance})
+        return ("set axis " + str(axis) + " " + str(distance))
 
     def set_bed_temperature(self, temperature):
         """
@@ -57,7 +57,7 @@ class Commands:
         Args:
             temperature (int): The temperature to set for the bed.
         """
-        return ("set printer temp bed " + {temperature})
+        return ("set temp bed " + str(temperature))
 
     def set_extruder_temperature(self, temperature):
         """
@@ -66,7 +66,7 @@ class Commands:
             temperature (int): The temperature to set for the extruder.
             tool (int): The tool/extruder number (default is 0).
         """
-        return ("set printer temp extruder " + {temperature})
+        return ("set temp extruder " + str(temperature))
 
     def get_bed_temperature(self):
         """
@@ -88,7 +88,7 @@ class Commands:
         Args:
             rate (float): The extrusion flow rate multiplier.
         """
-        return ("set printer flowrate " + {rate})
+        return ("set flowrate " + str(rate))
 
     def get_flow_rate(self):
         """
@@ -102,7 +102,7 @@ class Commands:
         Args:
             speed (int): The print speed in percentage.
         """
-        return ("set printer speed " + {speed})
+        return ("set speed " + str(speed))
 
     def get_print_speed(self):
         """
@@ -122,14 +122,8 @@ class Commands:
         Args:
             axis (str): The axis to retrieve the position of (e.g., 'X', 'Y', 'Z').
         """
-        return ("get printer axis " + {axis})
+        return ("get printer axis " + axis)
     
     def get_image(self, cam):
-        return ("get image ", + {cam})
-    
-    def layer0(self):
-        try:
-            cmd = self.get_image("therm1") + '\n' + self.get_temperatures()
-            return (cmd)
-        except Exception as error:
-            pass
+        return ("get image " + cam)
+

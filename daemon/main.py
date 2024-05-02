@@ -170,7 +170,11 @@ class main:
 
 
                 elif device == 'image':
-                    self.myPrinter.setCommands.park()
+                    if self.myPrinter.printing:
+                        print("PAUSED")
+                        self.myPrinter.setCommands.pause()
+                    else:
+                        self.myPrinter.setCommands.park()
                     if command_parts[2] == 'cam1':
                         ret, self.myData = self.cam1.capture_frame()
                     elif command_parts[2] == 'therm1':
@@ -179,7 +183,7 @@ class main:
                         ret, self.myData = self.therm2.capture_frame()
                     else:
                         raise RuntimeError(f"Invalid Image device")
-
+                    print("GOT IMAGE")
                 else:
                     raise RuntimeError(f"Invalid command")
 
@@ -187,12 +191,18 @@ class main:
                     if ret:
                         self.myServer.PONG()
                         self.myServer.send(server.im2by(self.myData))
-                        self.myServer.wait()
+                        self.myServer.setWAIT()
+                        self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+                        if self.myPrinter.printing:
+                            print("UNPAUSE")
+                            time.sleep(0.1)
+                            self.myPrinter.setCommands.clear()
                     elif not ret:
                         self.myServer.PONG()
-                        print(server.com2by(self.myData))
+                        #print(server.com2by(self.myData))
                         self.myServer.send(server.com2by(self.myData))
-                        self.myServer.wait()
+                        self.myServer.setWAIT()
+                        self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
                     else:
                         raise RuntimeError(f"Invalid Process data type")
 
@@ -293,39 +303,37 @@ class main:
                 self.myServer.PING()#SEND PING(INIT PING)
                 self.myServer.send(server.com2by(self.initStatus))#SEND INIT STATUS
                 print("Passed!" + self.initStatus)
-                self.myServer.wait()
+                #self.myServer.wait()
                 self.myServer.setWAIT()
 
             while(self.myServer.connected):
                 self.printerFlag = self.myPrinter.get_status() #CHECK FOR SET FLAGS
                 self.myServer.checkStatus() #START WIAIT FOR SOMETHING FROM HOST (USUALLY "PING")
-# 
+
                 if self.printerFlag is not None:
                     print("Printer Flag")
                     self.myServer.PING() #SEND PING TO INDICATE FLAG | TIMER STATE IS PING
                     self.myServer.send(server.com2by(self.printerFlag)) #SEND FLAG
+                    self.myServer.setWAIT()
                     self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
                     self.process(server.by2com(self.myServer.receive())) #PROCESS INITIAL COMMAND (USUALY A GET COMMAND)
                     #PING AND PONG INSIDE OF PROCESS
                     self.process(server.by2com(self.myServer.receive())) #PROCESS SECOND COMMAND (USUALY A SET COMMAND)
                     #NO PING PONG ON SET COMMANDS
-                    self.printerFlag = None
-                    self.myServer.setWAIT()
 
                 elif self.myServer.status != 'WAIT':
                     print("PING/PONG Flag")
                     self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
-                    self.myServer.PONG() #SEND PONG (READY TO SEND DATA)
-                    self.myServer.send(server.com2by(self.myData)) #SEND DATA
-                    self.myServer.setWAIT()
 
-                else:
-                    self.myServer.setWAIT()
+                self.myServer.setWAIT()
+                self.myCommand = None
+                self.myData = None
+                self.printerFlag = None
 
         except Exception as error:
             print(error)
             self.myServer.PONG()
-            self.myServer.send(server.com2by(f"Error: {error}"))
+            self.myServer.send(server.com2by(f"Error Server: {error}"))
             self.reset()
     
 

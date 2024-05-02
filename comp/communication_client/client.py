@@ -56,10 +56,10 @@ class CommunicationClient:
         try:
             if self.connected:
                 if data is not None:
-                    print(data)
+                    #print(data)
                     self.server_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.server_socket.sendall(data)
-                    #print("sent: " + str(data))
+                    print("SENT: " + data.decode())
                 else:
                     pass
         except socket.error as error:
@@ -77,7 +77,6 @@ class CommunicationClient:
 
                 while len(data) < length:
                     data += self.server_socket.recv(length - len(data))
-                print(data)
                 return data
 
         except socket.timeout:
@@ -132,7 +131,7 @@ class CommunicationClient:
 
             if self.status == 'PONG':
                 self.timer = False
-                self.status = 'WAIT'
+                #self.status = 'WAIT'
 
         except Exception as error:
             raise error
@@ -147,15 +146,16 @@ class CommunicationClient:
         self.status = 'WAIT'
 
     #WAIT FOR TIMER
-    def wait(self):
+    def wait(self, cmd):
         try:
+            if cmd is None:     return
             self.setWAIT()
             #self.server_socket.settimeout(2)
             self.checkStatus()
             while(self.timer):
                 self.checkStatus()
                 #print("WAITING")
-                print(self.status)
+                #print(self.status)
 
             #self.server_socket.settimeout(0.2)
 

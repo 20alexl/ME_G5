@@ -7,7 +7,7 @@ import sys
 import os
 import datetime
 
-#from . import process_commands as commands
+from . import process_commands as commands
 
 class ImageProcess:
     def __init__(self):
@@ -36,8 +36,9 @@ class ImageProcess:
 
         self.CalTemp = int
         self.CalBed = int
+        self.superBed = 0
         
-        #self.setCommands = commands.Commands()
+        self.setCommands = commands.Commands()
 
     def calibrate_data(self, init):
         try:
@@ -55,21 +56,29 @@ class ImageProcess:
                     init_split[1] = init[l+1].strip()
                     self.layerHeight = float(init_split[1])
                 if init_split[0] == 'MINX':
-                    self.minX = int(init_split[1])
+                    self.minX = int(float(init_split[1]))
                 if init_split[0] == 'MINY':
-                    self.minY = int(init_split[1])
+                    self.minY = int(float(init_split[1]))
                 if init_split[0] == 'MINZ':
                     self.minZ = float(init_split[1])
                 if init_split[0] == 'MAXX':
-                    self.maxX = int(init_split[1])
+                    self.maxX = int(float(init_split[1]))
                 if init_split[0] == 'MAXY':
-                    self.maxY = int(init_split[1])
+                    self.maxY = int(float(init_split[1]))
                 if init_split[0] == 'MAXZ':
                     self.maxZ = float(init_split[1])
                 if init_split[0] == 'LAYER_COUNT':
-                    self.layerMax = int(init_split[1])
+                    self.layerMax = int(float(init_split[1]))
 
-            #return self.setCommands.get_temperatures()
+            print("FILAMENT USED: " + str(self.E))
+            # print(self.layerHeight)
+            # print(self.minX)
+            # print(self.minY)
+            # print(self.minZ)
+            # print(self.maxX)
+            # print(self.maxY)
+            # print(self.maxZ)
+            # print(self.layerMax)
 
         except Exception as error:
             raise RuntimeError(f"Error calibrate_data: {error}")
@@ -77,7 +86,11 @@ class ImageProcess:
 
     def layer_change(self, layer):
         try:
-            self.layer = layer
+            if layer == '0':
+                self.layer = 0
+            else:
+                self.layer = int(layer)
+            print("LAYER: " + str(self.layer))
             return self.setCommands.get_image("therm1")
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
@@ -90,6 +103,7 @@ class ImageProcess:
             self.mod = np.uint8(self.mod)
             self.image = self.mod.copy()
 
+            # print("1")
             thresh = cv2.threshold(self.mod, 150, 255, cv2.THRESH_BINARY)[1]
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
             close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
@@ -117,8 +131,9 @@ class ImageProcess:
                 })
                     return
 
-            self.mod - self.image.copy()
-            thresh = cv2.threshold(self.mod, 120, 255, cv2.THRESH_BINARY)[1]
+            # print("2")
+            self.mod = self.image.copy()
+            thresh = cv2.threshold(self.mod, 150, 255, cv2.THRESH_BINARY)[1]
             kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
             close = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
 
@@ -144,8 +159,19 @@ class ImageProcess:
                     "h": h
                 })
                     return
+            
+            # print("final bed")
+            self.mod = self.master[self.layer].copy()
+            self.plate.append({ #Copy a good plate image to array for storage if not object found
+            "image": self.mod.copy(),
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+            })
 
         except Exception as error:
+            print(error)
             pass
 
     def findObject(self):
@@ -179,8 +205,8 @@ class ImageProcess:
             #print(cnts)
 
             myArea = (self.maxX - self.minX) * (self.maxY - self.minY)
-            min_area = (myArea/40) - (myArea/50)
-            max_area = (myArea/40) + (myArea/50)
+            min_area = int((myArea/40) - (myArea/50))
+            max_area = int((myArea/40) + (myArea/50))
             # print(min_area)
             # print(max_area)
             # print("1")
@@ -191,7 +217,7 @@ class ImageProcess:
                     x,y,w,h = cv2.boundingRect(c)
 
                     self.mod = self.master[self.layer].copy()
-                    self.mod = self.mod[self.plate[process.layer].get("y") + y + crop:self.plate[process.layer].get("y") + y + h + crop, self.plate[process.layer].get("x") + x + crop:self.plate[process.layer].get("x") + x + w + crop]
+                    self.mod = self.mod[self.plate[self.layer].get("y") + y + crop:self.plate[self.layer].get("y") + y + h + crop, self.plate[self.layer].get("x") + x + crop:self.plate[self.layer].get("x") + x + w + crop]
 
                     self.build.append({ #Copy a good plate image to array for storage
                     "image": self.mod.copy(),
@@ -218,8 +244,8 @@ class ImageProcess:
             #print(cnts)
 
             myArea = (self.maxX - self.minX) * (self.maxY - self.minY)
-            min_area = (myArea/40) - (myArea/55)
-            max_area = (myArea/40) + (myArea/55)
+            min_area = int((myArea/40) - (myArea/55))
+            max_area = int((myArea/40) + (myArea/55))
             # print(min_area)
             # print(max_area)
             # print("2")
@@ -230,7 +256,7 @@ class ImageProcess:
                     x,y,w,h = cv2.boundingRect(c)
 
                     self.mod = self.master[self.layer].copy()
-                    self.mod = self.mod[self.plate[process.layer].get("y") + y + crop:self.plate[process.layer].get("y") + y + h + crop, self.plate[process.layer].get("x") + x + crop:self.plate[process.layer].get("x") + x + w + crop]
+                    self.mod = self.mod[self.plate[self.layer].get("y") + y + crop:self.plate[self.layer].get("y") + y + h + crop, self.plate[self.layer].get("x") + x + crop:self.plate[self.layer].get("x") + x + w + crop]
 
                     self.build.append({ #Copy a good plate image to array for storage
                     "image": self.mod.copy(),
@@ -273,20 +299,19 @@ class ImageProcess:
             #print(cnts)
 
             myArea = (self.maxX - self.minX) * (self.maxY - self.minY)
-            min_area = (myArea/40) - (myArea/60)
-            max_area = (myArea/40) + (myArea/75)
+            min_area = int((myArea/40) - (myArea/60))
+            max_area = int((myArea/40) + (myArea/75))
             # print(min_area)
             # print(max_area)
             # print("3")
 
             for c in cnts:
                 area = int(cv2.contourArea(c))
-                print(area)
                 if area > min_area and area < max_area:
                     x,y,w,h = cv2.boundingRect(c)
 
                     self.mod = self.master[self.layer].copy()
-                    self.mod = self.mod[self.plate[process.layer].get("y") + y + top:self.plate[process.layer].get("y") + y + h + bottom, self.plate[process.layer].get("x") + x + left:self.plate[process.layer].get("x") + x + w + right]
+                    self.mod = self.mod[self.plate[self.layer].get("y") + y + top:self.plate[self.layer].get("y") + y + h + bottom, self.plate[self.layer].get("x") + x + left:self.plate[self.layer].get("x") + x + w + right]
 
                     self.build.append({ #Copy a good plate image to array for storage
                     "image": self.mod.copy(),
@@ -297,8 +322,9 @@ class ImageProcess:
                 })
                     return
 
+            self.mod = self.plate[self.layer].get("image").copy()
             self.build.append({ #Copy a good plate image to array for storage if not object found
-            "image": self.plate[self.layer].get("image").copy(),
+            "image": self.mod.copy(),
             "x": 0,
             "y": 0,
             "w": 0,
@@ -306,6 +332,7 @@ class ImageProcess:
             })
 
         except Exception as error:
+            print(error)
             pass
 
     def gradient(self):
@@ -322,17 +349,30 @@ class ImageProcess:
             self.bed = temp
             kP = 4
 
+            if self.layer > int(self.layerMax/2):
+                self.superBed = self.superBed - 2
+                if self.superBed < 20:
+                    self.superBed = 40
+
             if self.bed > self.CalBed and self.temp > self.CalBed: #BED HOT PRINT HOT
                 self.CalBed = self.CalBed - abs(int((self.bed - self.temp)/kP))
+                if self.CalBed > self.superBed:
+                    self.CalBed = self.superBed
                 return self.CalBed #COOL
             elif self.bed > self.CalBed and self.temp < self.CalBed: #BED HOT PRINT COLD
                 self.CalBed = self.CalBed - int((self.bed - self.temp)/kP)
+                if self.CalBed > self.superBed:
+                    self.CalBed = self.superBed
                 return self.CalBed #COOL
             elif self.bed < self.CalBed and self.temp < self.CalBed: #BED COLD PRINT COLD
                 self.CalBed = self.CalBed + abs(int((self.bed - self.temp)/kP))
+                if self.CalBed > self.superBed:
+                    self.CalBed = self.superBed
                 return self.CalBed #HEAT
             elif self.bed < self.CalBed and self.temp > self.CalBed: #BED COLD PRINT HOT
                 self.CalBed = self.CalBed + int((self.temp - self.bed)/kP)
+                if self.CalBed > self.superBed:
+                    self.CalBed = self.superBed
                 return self.CalBed #HEAT
             else:
                 return self.CalBed
@@ -342,12 +382,15 @@ class ImageProcess:
 
     def LWOI_AMP(self, data, type):
         try:
-            if self.layer is None and type != "image":
-                cmd_split = data.split("/")
+            if self.layer == 0 and type != "image":
+                cmd_split = data.split('/')
                 CalNoz = cmd_split[1].split(' ', 1) #BED TEMP
-                self.CalBed = CalBed[0]
                 CalBed = cmd_split[2].split(' ', 1) #Nozzel TEMP
-                self.CalNozzle = CalNoz[0]
+                self.CalNozzle = int(float(CalNoz[0]))
+                self.CalBed = int(float(CalBed[0])) + int(((int(float(CalBed[0])) - self.bed))/2)
+                self.superBed = self.CalBed + 10
+                print(str(self.CalBed))
+                print(str(self.CalNozzle))
                 return None
             elif type == "image":
                 image = cv2.medianBlur(data, 3)#used to restore lost image date due to bad frame rate
@@ -365,14 +408,20 @@ class ImageProcess:
 
                 self.findBed()
                 self.findObject()
+                self.save_current()
+                #self.display_image()
                 temp = self.gradient()
+
+                if self.layer == 0:
+                    return self.setCommands.get_temperatures()
+
                 if temp is None:
                     return None
                 else:
-                    print(temp)
-                    #return self.setCommands.set_bed_temperature(temp)
+                    #print(temp)
+                    return self.setCommands.set_bed_temperature(temp)
             else:
-                print(data.split())
+                #print(data.split())
                 return None
 
         except Exception as error:
@@ -398,7 +447,7 @@ class ImageProcess:
                         cv2.rectangle(master, (self.plate[self.layer].get("x") + self.build[self.layer].get("x"), self.plate[self.layer].get("y") + self.build[self.layer].get("y")), (self.build[self.layer].get("x") + self.plate[self.layer].get("x") + self.build[self.layer].get("w"), self.build[self.layer].get("y") + self.plate[self.layer].get("y") + self.build[self.layer].get("h")), (36,255,12), 2)
                     except Exception as error:
                         pass
-                    master = cv2.resize(master, None, fx=10, fy=10)
+                    master = cv2.resize(master, None, fx=5, fy=5)
                     cv2.imshow('MASTER', master)
 
                     try:
@@ -406,7 +455,7 @@ class ImageProcess:
                         cv2.normalize(plate, plate, 0, 255, cv2.NORM_MINMAX)
                         plate = np.uint8(plate)
                         plate = cv2.applyColorMap(plate, cv2.COLORMAP_INFERNO)
-                        plate = cv2.resize(plate, None, fx=10, fy=10)
+                        plate = cv2.resize(plate, None, fx=5, fy=5)
                         cv2.imshow('PLATE', plate)
                     except Exception as error:
                         pass
@@ -416,7 +465,7 @@ class ImageProcess:
                         cv2.normalize(build, build, 0, 255, cv2.NORM_MINMAX)
                         build = np.uint8(build)
                         build = cv2.applyColorMap(build, cv2.COLORMAP_INFERNO)
-                        build = cv2.resize(build, None, fx=15, fy=15)
+                        build = cv2.resize(build, None, fx=10, fy=10)
                         cv2.imshow('BUILD', build)
                     except Exception as error:
                         pass
@@ -431,7 +480,93 @@ class ImageProcess:
                 raise RuntimeError("No image to display")
         except Exception as error:
             raise RuntimeError(f"Error displaying image: {error}")
-        
+
+    def save_current(self):
+        try:
+
+            current_dir = os.getcwd()
+            folder_path = os.path.join(current_dir, "runs", "current")
+            os.makedirs(folder_path, exist_ok=True)
+
+            print("Length of self.master:", len(self.master))
+            print("Length of self.plate:", len(self.plate))
+            print("Length of self.build:", len(self.build))
+            print("Current layer:", self.layer)
+            #GRAY
+
+            folder_path = os.path.join(current_dir, "runs", "current", "GRAY")
+            os.makedirs(folder_path, exist_ok=True)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "GRAY", "master")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.master[self.layer].copy()
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            image = cv2.resize(image, None, fx=10, fy=10)
+            cv2.imwrite(filename, image)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "GRAY", "plate")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.plate[self.layer].get("image").copy()
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            image = cv2.resize(image, None, fx=10, fy=10)
+            cv2.imwrite(filename, image)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "GRAY", "build")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.build[self.layer].get("image").copy()
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            image = cv2.resize(image, None, fx=10, fy=10)
+            cv2.imwrite(filename, image)
+
+            #RGB
+
+            folder_path = os.path.join(current_dir, "runs", "current", "RGB")
+            os.makedirs(folder_path, exist_ok=True)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "RGB", "master")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.master[self.layer].copy()
+            cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+            image = np.uint8(image)
+            image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
+            try:
+                cv2.rectangle(image, (self.plate[self.layer].get("x"), self.plate[self.layer].get("y")), (self.plate[self.layer].get("x") + self.plate[self.layer].get("w"), self.plate[self.layer].get("y") + self.plate[self.layer].get("h")), (36,255,12), 2)
+                cv2.rectangle(image, (self.plate[self.layer].get("x") + self.build[self.layer].get("x"), self.plate[self.layer].get("y") + self.build[self.layer].get("y")), (self.build[self.layer].get("x") + self.plate[self.layer].get("x") + self.build[self.layer].get("w"), self.build[self.layer].get("y") + self.plate[self.layer].get("y") + self.build[self.layer].get("h")), (36,255,12), 2)
+            except Exception as error:
+                pass
+            image = cv2.resize(image, None, fx=10, fy=10)
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            cv2.imwrite(filename, image)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "RGB", "plate")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.plate[self.layer].get("image").copy()
+            cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+            image = np.uint8(image)
+            image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
+            image = cv2.resize(image, None, fx=10, fy=10)
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            cv2.imwrite(filename, image)
+
+            folder_path = os.path.join(current_dir, "runs", "current", "RGB", "build")
+            os.makedirs(folder_path, exist_ok=True)
+
+            image = self.build[self.layer].get("image").copy()
+            cv2.normalize(image, image, 0, 255, cv2.NORM_MINMAX)
+            image = np.uint8(image)
+            image = cv2.applyColorMap(image, cv2.COLORMAP_INFERNO)
+            image = cv2.resize(image, None, fx=15, fy=15)
+            filename = os.path.join(folder_path, f"LAYER_{self.layer}.png")
+            cv2.imwrite(filename, image)
+
+        except Exception as error:
+            raise RuntimeError(f"Error saving current image: {error}")
+
 
     def save_run(self):
         try:
@@ -513,8 +648,8 @@ class ImageProcess:
                 cv2.imwrite(filename, image)
 
         except Exception as error:
-            raise RuntimeError(f"Error saving image: {error}")
-        
+            raise RuntimeError(f"Error saving run: {error}")
+
 
 if __name__ == "__main__":
     process = ImageProcess()
@@ -530,7 +665,7 @@ if __name__ == "__main__":
     image_filename = "60deg_bed1.png"
     image_filename = "cold_object1.png"
     image_filename = "residual2.png"
-    image_filename = "Layer50.png"
+    image_filename = "Layer100.png"
     image_path = os.path.join(current_dir, relative_folder_path, image_filename)
     image = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH)
 
@@ -541,8 +676,8 @@ if __name__ == "__main__":
         print("Failed to read the image.")
 
     process.LWOI_AMP(image, "image")
-    process.save_run()
-    #process.display_image()
+    #process.save_current()
+    process.display_image()
     # mod = process.master[process.layer].copy()
     # cv2.rectangle(mod, (process.plate[process.layer].get("x"), process.plate[process.layer].get("y")), (process.plate[process.layer].get("x") + process.plate[process.layer].get("w"), process.plate[process.layer].get("y") + process.plate[process.layer].get("h")), (36,255,12), 2)
     # cv2.rectangle(mod, (process.plate[process.layer].get("x") + process.build[process.layer].get("x"), process.plate[process.layer].get("y") + process.build[process.layer].get("y")), (process.build[process.layer].get("x") + process.plate[process.layer].get("x") + process.build[process.layer].get("w"), process.build[process.layer].get("y") + process.plate[process.layer].get("y") + process.build[process.layer].get("h")), (36,255,12), 2)

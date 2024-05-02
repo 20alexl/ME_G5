@@ -77,7 +77,6 @@ class CommunicationServer:
             if self.connected:
                 self.setPING()
                 if data is not None:
-                    print(data)
                     self.client_socket.sendall(len(data).to_bytes(4, 'big'))
                     self.client_socket.sendall(data)
                 else:
@@ -97,7 +96,7 @@ class CommunicationServer:
                 data = b''
                 while len(data) < length:
                     data += self.client_socket.recv(length - len(data))
-                print(data)
+                print("REC " + data.decode())
                 return data
 
         except socket.timeout:

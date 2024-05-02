@@ -38,6 +38,8 @@ class Commands:
         self.communication.send_command("M105")
         while self.communication.receive_response():
             pass
+        while self.communication.receive_response():
+            pass
         return self.communication.cmd
 
     def start_print(self):
@@ -213,6 +215,18 @@ class Commands:
         """
         Pause and park the printer. In halt state
         """
+        self.communication.send_command("G28")
+        while self.communication.receive_response():
+            pass
+        self.communication.receive_response()
+        self.communication.send_command("G27")
+        while self.communication.receive_response():
+            pass
+    
+    def pause(self):
+        """
+        Pause and park the printer. In halt state
+        """
         self.communication.send_command("M25")
         while self.communication.receive_response():
             pass
@@ -225,7 +239,11 @@ class Commands:
         self.communication.send_command("M108")
         while self.communication.receive_response():
             pass
+        self.communication.receive_response()
         self.communication.send_command("M876 S1")
         while self.communication.receive_response():
             pass
+        self.communication.send_command("M876 S1")
+        # while self.communication.receive_response():
+        #     pass
         return self.communication.cmd

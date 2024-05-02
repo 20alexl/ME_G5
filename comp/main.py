@@ -97,10 +97,12 @@ class main:
                 if len(self.printerFlag) > 0:
                     if self.printerFlag[0] == "INIT":
                         #get calibration data
-                        self.myCommand = self.myProcess.calibrate_data(self.printerFlag[1])
-                    elif self.printerFlag[0] == "LAYER":
-                        #get layer data
+                        self.myProcess.calibrate_data(self.printerFlag[1])
+                    elif self.printerFlag[0] == 'LAYER':
+                        #get layer datas
                         self.myCommand = self.myProcess.layer_change(self.printerFlag[1]) #GET IMAGE COMMAND
+                        if self.myProcess.layer + 4 > self.myProcess.layerMax:
+                            self.myCommand = None
                     elif self.printerFlag[0] == "TEST":
                         #get degub command
                         self.myCommand = input ("Enter command: ")
@@ -142,10 +144,6 @@ class main:
                 else:
                     command_parts = self.myCommand.split()
                     self.myCommand = self.myProcess.LWOI_AMP(self.data, command_parts[1])
-                try:
-                    self.myProcess.display_image()# DISPLAY IMAGE
-                except Exception as error:
-                    pass
             else:
                 pass
         except Exception as error:
@@ -166,7 +164,7 @@ class main:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
             if self.initPassed:#IF ALL TESTS PASS
-                self.myClient.wait()#WAIT FOR PING
+                self.myClient.wait("INIT")#WAIT FOR PING
                 self.server_init_status = (client.by2com(self.myClient.receive())) #RECIEVE TEST INIT STATUS
                 self.myClient.PONG() #SEND PONG ?
             if self.initStatus == self.server_init_status:
@@ -185,7 +183,7 @@ class main:
                     #print("FLAG")
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
                     #print("FLAG")
-                    self.myClient.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+                    self.myClient.wait(self.myCommand) #WAIT FOR PONG(READY FOR RESPONSE)
 
                     self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
                     self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
@@ -212,13 +210,14 @@ class main:
                 self.init_test() #TEST ALL CONNTECTED COMPONENTS
             print("Tested!")
             if self.initPassed:#IF ALL TESTS PASS
-                self.myClient.wait()#WAIT FOR PING
+                self.myClient.wait("INIT")#WAIT FOR PING
                 self.server_init_status = (client.by2com(self.myClient.receive())) #RECIEVE TEST INIT STATUS
                 self.myClient.PONG() #SEND PONG ?
             if self.initStatus == self.server_init_status:
                 print("Passed!" + self.initStatus + " : " + self.server_init_status)
             else:
                 print("Failed!" + self.initStatus + " : " + self.server_init_status)
+            self.myClient.setWAIT()
 
             while(self.myClient.connected):
                 self.myClient.checkStatus() #START WIAIT FOR SOMETHING FROM SERVER (USUALLY "PING")   
@@ -228,26 +227,43 @@ class main:
 
                     self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
-                    self.myClient.wait() #WAIT FOR PONG:(READY FOR RESPONSE)
+                    self.myClient.wait(self.myCommand) #WAIT FOR PONG(READY FOR RESPONSE)
 
-                    self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
+                    if self.myCommand is not None:
+                        self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
+
                     self.process()#PROCESS DATA:(USALLY IMAGE) RETURNS COMMAND:(USUALLY SET)
 
-                    self.myClient.PONG() #SEND PONG TO INDICATE PROCESS COMMAND READY
-                    self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
+                    if self.myCommand is not None:
+                        self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
+                        self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
+                        self.myClient.wait(self.myCommand) #WAIT FOR PONG(READY FOR RESPONSE)
+                        self.readData(self.myClient.receive()) #PROCESS DATA:(USUALLY IMAGE or STR) RETURNS DECODED DATA:(USUALLY IMAGE)
+                        self.process()#PROCESS DATA:(USALLY IMAGE) RETURNS COMMAND:(USUALLY SET)
+                        self.myClient.PONG() #SEND PONG TO INDICATE FLAG COMMAND READY
+
+                    self.myClient.setWAIT() #WAIT FOR PONG(READY FOR RESPONSE)
 
                 if keyboard.is_pressed('m'):
-                    self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
                     self.readFlag("TEST") #PROCESS FLAG RETURNS COMMAND (DEGUB)
+                    self.myClient.PING() #SEND PING TO INDICATE FLAG COMMAND
                     self.myClient.send(client.com2by(self.myCommand)) #SEND COMMAND
                     #print("FLAG")
-                    self.myClient.wait() #WAIT FOR PONG(READY FOR RESPONSE)
+                    self.myClient.wait(self.myCommand) #WAIT FOR PONG(READY FOR RESPONSE)
 
                     self.readData(self.myClient.receive()) #PROCESS DATA RETURNS COMMAND (DEGUB)
+                    try:
+                        self.process()
+                    except Exception as error:
+                        pass
                     self.myClient.PONG() #SEND PING TO INDICATE FLAG COMMAND
-                    self.process()
+
+                self.myCommand = None
+                self.data = None
+                self.myClient.setWAIT()
 
             self.myProcess.save_run()
+            self.reset()
 
         except Exception as error:
             self.myClient.PING()
