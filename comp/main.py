@@ -86,7 +86,7 @@ class main:
             if flag is None:    return   
             self.printerFlag = flag.split(' ', 1)
             #FLAGS: 0=NONE, 1=CALIBRATION DATA, 2=LAYER CHANGE, 3=SEND COMMAND
-            print(self.printerFlag)
+            #print(self.printerFlag)
             if self.printerFlag[0] == 'RESET':
                 self.myClient.send("RESET")
                 self.reset()
@@ -138,7 +138,7 @@ class main:
     def process(self):
         try:
             if self.data is not None:
-                if self.myProcess.layer == self.myProcess.layerMax:
+                if self.myProcess.layer == self.myProcess.layerMax - 1:
                     self.myCommand = "RESET"
                     self.myClient.connected == False
                 else:

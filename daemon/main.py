@@ -171,7 +171,7 @@ class main:
 
                 elif device == 'image':
                     if self.myPrinter.printing:
-                        print("PAUSED")
+                        print("============PAUSED============")
                         self.myPrinter.setCommands.pause()
                     else:
                         self.myPrinter.setCommands.park()
@@ -194,7 +194,7 @@ class main:
                         self.myServer.setWAIT()
                         self.myServer.wait() #WAIT FOR PONG(READY FOR RESPONSE)
                         if self.myPrinter.printing:
-                            print("UNPAUSE")
+                            print("============UNPAUSE============")
                             time.sleep(0.1)
                             self.myPrinter.setCommands.clear()
                     elif not ret:
@@ -235,7 +235,7 @@ class main:
                 
                 if self.myData is not None:  # Check if image data is not None
                     self.myServer.PONG()
-                    print(server.com2by(self.myData))
+                    #print(server.com2by(self.myData))
                     self.myServer.send(server.com2by(self.myData))
                 else:
                     raise RuntimeError(f"Error: Failed to capture data")
@@ -322,7 +322,7 @@ class main:
                     #NO PING PONG ON SET COMMANDS
 
                 elif self.myServer.status != 'WAIT':
-                    print("PING/PONG Flag")
+                    print("============PING/PONG Flag============")
                     self.process(server.by2com(self.myServer.receive())) #PROCESS MANUAL COMMAND
 
                 self.myServer.setWAIT()

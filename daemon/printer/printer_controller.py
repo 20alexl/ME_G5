@@ -54,7 +54,7 @@ class PrinterCommunication():
             str: The response received from the printer.
         """
         self.cmd = self.serial_connection.readline().decode()
-        print(self.cmd)
+        #print(self.cmd)
         self.parse()
         if self.cmd_split[0] == 'k' or self.cmd_split[0] == 'busy' or self.cmd_split[0] == 'MESH' or self.cmd_split[0] == '' or self.cmd_split[0] == 'action' or self.cmd_split[0] == 'TYPE' or self.cmd.startswith('Mesh') or self.cmd_split[0] == 'Send' or self.cmd_split[0] == 'X' or self.cmd_split[0] == 'T':
             if len(self.cmd_split) > 1:
@@ -63,7 +63,7 @@ class PrinterCommunication():
             return True
         self.cmd = self.cmd.strip('ok')
         if self.cmd_split[0] == 'TIME':
-            print("PRINTING!!!")
+            print("============PRINTING!!!============")
             self.printing = True
 
         return False
@@ -110,7 +110,7 @@ class PrinterCommunication():
         #Get response from printer
         self.receive_response()
         #Parse response
-        #print(self.cmd_split)
+        print(self.cmd_split)
 
         #If we are not printing, return the status
         if self.printing == False:  
@@ -121,7 +121,7 @@ class PrinterCommunication():
             if self.cmd_split[0] == 'LAYER_COUNT':
                 self.initState = self.initState + " " + (self.cmd).strip(";")
                 self.init = True
-                print("INIT SENT")
+                print("============INIT SENT============")
                 return ("INIT" + str(self.initState))
             else:
                 self.initState = self.initState + " " + (self.cmd).strip(";")
@@ -129,7 +129,7 @@ class PrinterCommunication():
 
         else: #IF we have started a print
             if self.cmd_split[0] == 'LAYER': #LAYER FLAG
-                print("LAYER " + self.cmd_split[1] + " SENT")
+                print("============LAYER " + self.cmd_split[1] + " SENT============")
                 return str("LAYER " + self.cmd_split[1])
             #elif self.cmd_split[0] == "TIME": #TIME FLAG
                 return {"TIME " + self.cmd_split[1]}

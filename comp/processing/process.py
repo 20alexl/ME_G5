@@ -90,7 +90,7 @@ class ImageProcess:
                 self.layer = 0
             else:
                 self.layer = int(layer)
-            print("LAYER: " + str(self.layer))
+            print("============LAYER: " + str(self.layer) + "============")
             return self.setCommands.get_image("therm1")
         except Exception as error:
             raise RuntimeError(f"Error layer_change: {error}")
@@ -351,8 +351,8 @@ class ImageProcess:
 
             if self.layer > int(self.layerMax/2):
                 self.superBed = self.superBed - 2
-                if self.superBed < 20:
-                    self.superBed = 40
+                if self.superBed < 35:
+                    self.superBed = 45
 
             if self.bed > self.CalBed and self.temp > self.CalBed: #BED HOT PRINT HOT
                 self.CalBed = self.CalBed - abs(int((self.bed - self.temp)/kP))
@@ -393,7 +393,7 @@ class ImageProcess:
                 print(str(self.CalNozzle))
                 return None
             elif type == "image":
-                image = cv2.medianBlur(data, 3)#used to restore lost image date due to bad frame rate
+                image = cv2.medianBlur(data, 5)#used to restore lost image date due to bad frame rate
                 sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
                 image = cv2.filter2D(image, -1, sharpen_kernel)
                 height, width = image.shape[:2]
@@ -589,23 +589,23 @@ class ImageProcess:
                 image = cv2.resize(image, None, fx=10, fy=10)
                 cv2.imwrite(filename, image)
 
-            folder_path = os.path.join(current_dir, "runs", ct, "GRAY", "plate")
-            os.makedirs(folder_path, exist_ok=True)
+            # folder_path = os.path.join(current_dir, "runs", ct, "GRAY", "plate")
+            # os.makedirs(folder_path, exist_ok=True)
 
-            for i, image_dict in enumerate(self.plate):
-                image = image_dict["image"]
-                image = cv2.resize(image, None, fx=10, fy=10)
-                filename = os.path.join(folder_path, f"LAYER_{i}.png")
-                cv2.imwrite(filename, image)
+            # for i, image_dict in enumerate(self.plate):
+            #     image = image_dict["image"]
+            #     image = cv2.resize(image, None, fx=10, fy=10)
+            #     filename = os.path.join(folder_path, f"LAYER_{i}.png")
+            #     cv2.imwrite(filename, image)
 
-            folder_path = os.path.join(current_dir, "runs", ct, "GRAY", "build")
-            os.makedirs(folder_path, exist_ok=True)
+            # folder_path = os.path.join(current_dir, "runs", ct, "GRAY", "build")
+            # os.makedirs(folder_path, exist_ok=True)
 
-            for i, image_dict in enumerate(self.build):
-                image = image_dict["image"]
-                image = cv2.resize(image, None, fx=10, fy=10)
-                filename = os.path.join(folder_path, f"LAYER_{i}.png")
-                cv2.imwrite(filename, image)
+            # for i, image_dict in enumerate(self.build):
+            #     image = image_dict["image"]
+            #     image = cv2.resize(image, None, fx=10, fy=10)
+            #     filename = os.path.join(folder_path, f"LAYER_{i}.png")
+            #     cv2.imwrite(filename, image)
 
             #RGB
 
